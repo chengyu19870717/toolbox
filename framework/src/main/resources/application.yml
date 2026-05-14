@@ -1,0 +1,56 @@
+server:
+  port: 9090
+  servlet:
+    context-path: /
+  tomcat:
+    connection-timeout: 60s
+
+toolbox:
+  paths:
+    config-dir: config
+    plugins-dir: plugins
+    plugins-data-dir: plugins-data
+    temp-dir: temp
+    logs-dir: logs
+
+  security:
+    jwt-secret: ${JWT_SECRET:dev-only-secret-do-NOT-use-in-production!!}
+    jwt-expire-hours: 8
+
+  task:
+    max-concurrent-per-user: 5
+    retention-days: 30
+    cleanup-cron: "0 0 3 * * *"
+
+  file:
+    upload-max-size: 100MB
+    temp-retention-hours: 24
+
+  datasource:
+    default-query-timeout-seconds: 60
+    default-max-rows: 1000000
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  security:
+    user:
+      name: ignored   # 关闭 Spring Security 默认用户，用自定义 JWT
+
+logging:
+  level:
+    root: INFO
+    com.toolbox: INFO
+  file:
+    name: logs/app.log
+  logback:
+    rollingpolicy:
+      max-history: 30
+      max-file-size: 50MB
+      total-size-cap: 5GB

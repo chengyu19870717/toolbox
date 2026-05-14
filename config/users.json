@@ -1,0 +1,9 @@
+[ {
+  "username" : "admin",
+  "passwordHash" : "$2a$10$L/AlYrQGMGeP8zQ7KHxO7.P0Z6nj34SRLwQ27Xdk43NJrBVvIm.N6",
+  "role" : "ADMIN",
+  "enabled" : true,
+  "mustChangePassword" : false,
+  "createdAt" : 1778332508.826057000,
+  "lastLoginAt" : 1778333354.866490000
+} ]

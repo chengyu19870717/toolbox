@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ToolBox</title>
+    <!-- 插件 bundle 通过 importmap 复用框架的 Vue/Element Plus 实例 -->
+    <script type="importmap">
+    {
+      "imports": {
+        "vue": "/assets/vue.js",
+        "element-plus": "/assets/element-plus.js"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

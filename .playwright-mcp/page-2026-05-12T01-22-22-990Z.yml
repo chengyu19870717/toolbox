@@ -1,0 +1,27 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]: ToolBox
+    - menubar [ref=e6]:
+      - menuitem "工具箱" [ref=e7] [cursor=pointer]:
+        - img [ref=e9]
+        - generic [ref=e11]: 工具箱
+      - menuitem "数据源管理" [ref=e12] [cursor=pointer]:
+        - img [ref=e14]
+        - generic [ref=e17]: 数据源管理
+      - menuitem "任务中心" [ref=e18] [cursor=pointer]:
+        - img [ref=e20]
+        - generic [ref=e22]: 任务中心
+      - menuitem "用户管理" [ref=e23] [cursor=pointer]:
+        - img [ref=e25]
+        - generic [ref=e27]: 用户管理
+  - generic [ref=e28]:
+    - button "admin" [ref=e31] [cursor=pointer]:
+      - img [ref=e33]
+      - text: admin
+      - img [ref=e36]
+    - main [ref=e38]:
+      - generic [ref=e40]:
+        - generic [ref=e41]: 工具箱
+        - generic [ref=e43]:
+          - img [ref=e45]
+          - paragraph [ref=e62]: 暂无可用工具，请在 plugins/ 目录放入插件 jar 并重启

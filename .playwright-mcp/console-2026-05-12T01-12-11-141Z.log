@@ -1,0 +1,25 @@
+[      69ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
+[      85ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
+[    5178ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
+[    5201ms] [ERROR] TypeError: Cannot read properties of null (reading 'ce')
+    at Me (http://localhost:9090/api/plugins/flow-parser-main/frontend.js:2141:10)
+    at Proxy.<anonymous> (http://localhost:9090/api/plugins/flow-parser-main/frontend.js:15139:13)
+    at qv (http://localhost:9090/assets/index-gsYnkNl1.js:14:22152)
+    at t3.Be [as fn] (http://localhost:9090/assets/index-gsYnkNl1.js:14:32396)
+    at t3.run (http://localhost:9090/assets/index-gsYnkNl1.js:10:2120)
+    at K (http://localhost:9090/assets/index-gsYnkNl1.js:14:32804)
+    at U (http://localhost:9090/assets/index-gsYnkNl1.js:14:31389)
+    at B (http://localhost:9090/assets/index-gsYnkNl1.js:14:31135)
+    at m (http://localhost:9090/assets/index-gsYnkNl1.js:14:27448)
+    at M (http://localhost:9090/assets/index-gsYnkNl1.js:14:29238) @ http://localhost:9090/assets/index-gsYnkNl1.js:13
+[    5204ms] [ERROR] TypeError: Cannot read properties of null (reading 'ce')
+    at Me (http://localhost:9090/api/plugins/flow-parser-main/frontend.js:2141:10)
+    at Proxy.<anonymous> (http://localhost:9090/api/plugins/flow-parser-main/frontend.js:16465:9)
+    at qv (http://localhost:9090/assets/index-gsYnkNl1.js:14:22152)
+    at t3.Be [as fn] (http://localhost:9090/assets/index-gsYnkNl1.js:14:32396)
+    at t3.run (http://localhost:9090/assets/index-gsYnkNl1.js:10:2120)
+    at K (http://localhost:9090/assets/index-gsYnkNl1.js:14:32804)
+    at U (http://localhost:9090/assets/index-gsYnkNl1.js:14:31389)
+    at B (http://localhost:9090/assets/index-gsYnkNl1.js:14:31135)
+    at m (http://localhost:9090/assets/index-gsYnkNl1.js:14:27448)
+    at t3.Be [as fn] (http://localhost:9090/assets/index-gsYnkNl1.js:14:32402) @ http://localhost:9090/assets/index-gsYnkNl1.js:13

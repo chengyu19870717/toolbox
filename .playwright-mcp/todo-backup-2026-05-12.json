@@ -1,0 +1,102 @@
+{
+  "exportVersion": "3.0",
+  "exportedAt": "2026-05-12T03:39:30.545Z",
+  "tasks": [
+    {
+      "id": "mp229n8b-gd6hkqz",
+      "title": "测试任务一",
+      "status": "completed",
+      "isSplit": true,
+      "targetDate": "2026-05-12",
+      "project": "研发",
+      "stakeholders": [],
+      "createdAt": "2026-05-12T03:18:30.107Z",
+      "updatedAt": "2026-05-12T03:20:24.385Z",
+      "originalTargetDate": "2026-05-12",
+      "rolloverCount": 0,
+      "sortIndex": 1778555910107,
+      "completedAt": "2026-05-12T03:19:46.665Z"
+    },
+    {
+      "id": "mp22a85v-z2icv5x",
+      "title": "完成设计文档",
+      "status": "todo",
+      "isSplit": false,
+      "targetDate": "2026-05-14",
+      "project": "研发",
+      "stakeholders": [],
+      "createdAt": "2026-05-12T03:18:57.235Z",
+      "updatedAt": "2026-05-12T03:18:57.235Z",
+      "originalTargetDate": "2026-05-14",
+      "rolloverCount": 0,
+      "sortIndex": 1778555937235
+    },
+    {
+      "id": "mp22a8bi-77igz6l",
+      "title": "跟进客户需求",
+      "status": "todo",
+      "isSplit": false,
+      "targetDate": "2026-05-12",
+      "project": "日常",
+      "stakeholders": [
+        {
+          "id": "mp22l3xa-novbz80",
+          "name": "张三",
+          "role": "",
+          "remark": "",
+          "addedAt": "2026-05-12T03:27:24.958Z"
+        }
+      ],
+      "createdAt": "2026-05-12T03:18:57.438Z",
+      "updatedAt": "2026-05-12T03:29:38.330Z",
+      "originalTargetDate": "2026-05-12",
+      "rolloverCount": 0,
+      "sortIndex": 1778555937438
+    },
+    {
+      "id": "mp22a8h6-zi1fw5g",
+      "title": "整理会议纪要",
+      "status": "todo",
+      "isSplit": false,
+      "targetDate": "2026-05-17",
+      "project": "日常",
+      "stakeholders": [],
+      "createdAt": "2026-05-12T03:18:57.642Z",
+      "updatedAt": "2026-05-12T03:18:57.642Z",
+      "originalTargetDate": "2026-05-17",
+      "rolloverCount": 0,
+      "sortIndex": 1778555937642
+    },
+    {
+      "id": "mp22c3eq-6iyze4n",
+      "title": "子任务A",
+      "parentId": "mp229n8b-gd6hkqz",
+      "status": "todo",
+      "isSplit": false,
+      "targetDate": "2026-05-12",
+      "project": "研发",
+      "stakeholders": [],
+      "createdAt": "2026-05-12T03:20:24.385Z",
+      "updatedAt": "2026-05-12T03:20:24.385Z",
+      "originalTargetDate": "2026-05-12",
+      "rolloverCount": 0,
+      "sortIndex": 1778556024386
+    },
+    {
+      "id": "mp22c3eq-aarbfmj",
+      "title": "子任务B",
+      "parentId": "mp229n8b-gd6hkqz",
+      "status": "todo",
+      "isSplit": false,
+      "targetDate": "2026-05-12",
+      "project": "研发",
+      "stakeholders": [],
+      "createdAt": "2026-05-12T03:20:24.385Z",
+      "updatedAt": "2026-05-12T03:20:24.385Z",
+      "originalTargetDate": "2026-05-12",
+      "rolloverCount": 0,
+      "sortIndex": 1778556024387
+    }
+  ],
+  "projects": []
+}

@@ -1,0 +1,17 @@
+[      65ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
+[      90ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   10096ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   20106ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   30115ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   40124ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   50130ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   60135ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   70144ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   80152ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[   90159ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  100168ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  110175ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  120181ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  130191ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  140199ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0
+[  150205ms] [ERROR] EventSource's response has a MIME type ("text/html") that is not "text/event-stream". Aborting the connection. @ http://localhost:9090/tools/flow-parser-main:0

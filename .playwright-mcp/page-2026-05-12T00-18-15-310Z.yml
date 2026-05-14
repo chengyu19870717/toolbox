@@ -1,0 +1,15 @@
+- generic [ref=e5]:
+  - heading "ToolBox" [level=2] [ref=e6]
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: 用户名
+      - generic [ref=e12]:
+        - img [ref=e15]
+        - textbox "用户名" [ref=e17]
+    - generic [ref=e18]:
+      - generic [ref=e19]: 密码
+      - generic [ref=e22]:
+        - img [ref=e25]
+        - textbox "密码" [ref=e28]
+    - button "登录" [ref=e29] [cursor=pointer]:
+      - generic [ref=e30]: 登录
