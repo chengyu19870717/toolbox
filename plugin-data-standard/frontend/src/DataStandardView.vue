@@ -769,8 +769,10 @@ function downloadText(text: string, filename: string, mime: string) {
   const blob = new Blob(['﻿' + text], { type: mime })
   const url  = URL.createObjectURL(blob)
   const a    = Object.assign(document.createElement('a'), { href: url, download: filename })
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }
 
 // ══════════════════════════════════════════════════════════════ 工具函数 ══════
