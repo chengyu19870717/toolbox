@@ -1,9 +1,0 @@
-[      74ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
-[      90ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
-[    6070ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/favicon.ico:0
-[  591187ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/api/plugin/flow-parser-main/sync?action=getFileContent:0
-[  605796ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ http://localhost:9090/195_195.xml:0
-[  618885ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ http://localhost:9090/api/plugins/flow-parser-main/sync:0
-[  618886ms] [ERROR] Error: 未解析到有效的流程定义，请检查XML格式
-    at n (http://localhost:9090/assets/ToolView-nHRYF3wD.js:1:1277)
-    at async v (http://localhost:9090/api/plugins/flow-parser-main/frontend.js:25355:15) @ http://localhost:9090/assets/runtime-dom.esm-bundler-HAKLOyI3.js:12
