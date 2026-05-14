@@ -162,7 +162,12 @@
         </el-row>
         <!-- 码值编辑器（仅字符型） -->
         <div v-if="rootForm.root_type === '字符型'" style="margin-top:8px;">
-          <div style="font-size:12px;font-weight:600;color:#909399;margin-bottom:8px;">码值序列</div>
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:600;color:#909399;flex:1;">码值序列</span>
+            <el-button size="small" @click="exportCodeValues">导出码值</el-button>
+            <el-button size="small" @click="cvImportRef?.click()" style="margin-left:6px;">导入码值</el-button>
+            <input ref="cvImportRef" type="file" accept=".csv" style="display:none" @change="importCodeValues" />
+          </div>
           <div class="cv-editor">
             <div class="cv-header">
               <span>码值编码</span><span>码值含义</span><span></span>
@@ -710,7 +715,31 @@ async function exportFields() {
 }
 
 const importFileRef  = ref<HTMLInputElement|null>(null)
+const cvImportRef    = ref<HTMLInputElement|null>(null)
 let   importTarget   = ''
+
+function exportCodeValues() {
+  if (!codeRows.value.length) { ElMessage.warning('当前无码值可导出'); return }
+  const lines = ['code,label', ...codeRows.value.map(r => `${r.code},${r.label}`)]
+  downloadText(lines.join('\n'), `码值_${rootForm.value.name || 'export'}.csv`, 'text/csv;charset=utf-8')
+}
+
+async function importCodeValues(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const text = await file.text()
+  ;(e.target as HTMLInputElement).value = ''
+  const lines = text.split(/\r?\n/).filter(l => l.trim())
+  if (!lines.length) { ElMessage.error('文件为空'); return }
+  const start = lines[0].toLowerCase().startsWith('code') ? 1 : 0
+  const rows = lines.slice(start).map(l => {
+    const parts = l.split(',')
+    return { code: (parts[0] ?? '').trim(), label: (parts[1] ?? '').trim() }
+  }).filter(r => r.code)
+  if (!rows.length) { ElMessage.error('未读取到有效码值'); return }
+  codeRows.value = rows
+  ElMessage.success(`已导入 ${rows.length} 条码值`)
+}
 
 function triggerImport(type: string) {
   importTarget = type
