@@ -19,4 +19,25 @@
   "version" : 1,
   "createdAt" : 1779418206.128990000,
   "updatedAt" : 1779418206.128993000
+}, {
+  "id" : "bafb2c8e-7e7d-4b90-b461-4753cd7b6e81",
+  "name" : "test-ds",
+  "type" : "MYSQL",
+  "host" : "localhost",
+  "port" : 3306,
+  "database" : "test",
+  "username" : "root",
+  "password" : "123456",
+  "remark" : null,
+  "params" : null,
+  "poolConfig" : {
+    "maximumPoolSize" : 10,
+    "minimumIdle" : 2,
+    "connectionTimeoutMs" : 30000,
+    "idleTimeoutMs" : 600000,
+    "maxLifetimeMs" : 1800000
+  },
+  "version" : 2,
+  "createdAt" : 1779420042.180509000,
+  "updatedAt" : 1779420042.601014000
 } ]

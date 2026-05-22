@@ -22,12 +22,22 @@ public class SpaFallbackFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) req;
         HttpServletResponse response = (HttpServletResponse) res;
 
-        String path = request.getRequestURI();
+        // 已经是 forward 请求，直接放行，避免循环
+        if (request.getAttribute("javax.servlet.forward.request_uri") != null
+                || request.getAttribute("jakarta.servlet.forward.request_uri") != null) {
+            chain.doFilter(req, res);
+            return;
+        }
 
-        boolean isApi = path.startsWith("/api/");
-        boolean hasExtension = path.contains(".");
+        String uri = request.getRequestURI();
+        String ctx = request.getContextPath();
+        String path = ctx.isEmpty() ? uri : uri.startsWith(ctx) ? uri.substring(ctx.length()) : uri;
 
-        if (!isApi && !hasExtension) {
+        boolean isApi = path.startsWith("/api/") || path.equals("/api");
+        boolean isSse = path.startsWith("/sse/") || path.equals("/sse");
+        boolean hasExtension = path.lastIndexOf('.') > path.lastIndexOf('/');
+
+        if (!isApi && !isSse && !hasExtension) {
             request.getRequestDispatcher("/index.html").forward(request, response);
             return;
         }
