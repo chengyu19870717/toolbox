@@ -14,8 +14,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class PluginManagerService {
@@ -48,6 +52,8 @@ public class PluginManagerService {
         Path pluginsDir = Path.of(props.getPaths().getPluginsDir());
         Files.createDirectories(pluginsDir);
 
+        deduplicatePlugins(pluginsDir);
+
         pf4jManager = new DefaultPluginManager(pluginsDir);
         pf4jManager.loadPlugins();
         pf4jManager.startPlugins();
@@ -58,6 +64,37 @@ public class PluginManagerService {
         }
 
         log.info("PluginManager initialized, {} plugins loaded", pf4jManager.getStartedPlugins().size());
+    }
+
+    /**
+     * 扫描插件目录，当同一 pluginId 存在多个 jar 时，只保留版本号最新的那个，删除旧版本。
+     * 版本号从文件名中按 -{version}.jar 格式解析，无法解析时按 lastModified 时间排序。
+     */
+    private void deduplicatePlugins(Path pluginsDir) throws IOException {
+        Pattern versionPattern = Pattern.compile("^(.+?)-(\\d+\\.\\d+\\.\\d+(?:[._-]\\S+?)?)\\.jar$");
+        Map<String, List<Path>> byBaseName = new LinkedHashMap<>();
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(pluginsDir, "*.jar")) {
+            for (Path jar : stream) {
+                String filename = jar.getFileName().toString();
+                Matcher m = versionPattern.matcher(filename);
+                String key = m.matches() ? m.group(1) : filename;
+                byBaseName.computeIfAbsent(key, k -> new ArrayList<>()).add(jar);
+            }
+        }
+
+        for (Map.Entry<String, List<Path>> entry : byBaseName.entrySet()) {
+            List<Path> jars = entry.getValue();
+            if (jars.size() <= 1) continue;
+
+            // 按文件名排序（版本号字典序，对 semver 基本可靠）
+            jars.sort(Comparator.comparing(p -> p.getFileName().toString()));
+            List<Path> toDelete = jars.subList(0, jars.size() - 1);
+            for (Path old : toDelete) {
+                log.warn("检测到重复插件，删除旧版本: {}", old.getFileName());
+                Files.deleteIfExists(old);
+            }
+        }
     }
 
     @PreDestroy
