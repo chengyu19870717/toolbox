@@ -89,6 +89,7 @@ function buildApi(id: string): ToolboxAPI {
     dataSource: {
       list: () => apiFetch('/api/datasources'),
       query: (req) => apiFetch('/api/datasources/query', { method: 'POST', body: JSON.stringify(req) }),
+      testConnection: (dataSourceId) => apiFetch(`/api/datasources/${dataSourceId}/test`, { method: 'POST' }),
     },
 
     // submit 签名：submit(req)，toolId 从注入上下文取
@@ -105,7 +106,8 @@ function buildApi(id: string): ToolboxAPI {
           handlers.onProgress?.({ percent: d.percent ?? d.progressPercent ?? 0, message: d.message ?? d.progressMessage })
         })
         es.addEventListener('completed', (e: any) => {
-          handlers.onCompleted?.(JSON.parse(e.data).artifacts ?? [])
+          const d = JSON.parse(e.data)
+          handlers.onCompleted?.(d.artifacts ?? [], d.summary ?? {})
           es.close()
         })
         es.addEventListener('failed', (e: any) => {

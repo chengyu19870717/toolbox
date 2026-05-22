@@ -7,4 +7,5 @@ include(
     ":plugin-flow-parser",
     ":plugin-todo",
     ":plugin-data-standard",
+    ":plugin-file-search",
 )

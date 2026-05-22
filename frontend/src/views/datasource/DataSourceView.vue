@@ -30,7 +30,8 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑数据源' : '新增数据源'" width="500px" @closed="resetForm">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑数据源' : '新增数据源'" width="500px"
+               :close-on-click-modal="false" @closed="resetForm">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="90px">
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" />
@@ -65,8 +66,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div style="display:flex; align-items:center; gap:8px;">
             <el-button @click="testConnForm" :loading="testing">测试连接</el-button>
-            <el-tag v-if="testResult" :type="testResult.success ? 'success' : 'danger'" size="small">
-              {{ testResult.success ? `连接成功 (${testResult.durationMs}ms)` : testResult.message }}
+            <el-tag v-if="testResult" :type="testResult.ok ? 'success' : 'danger'" size="small">
+              {{ testResult.ok ? `连接成功 (${testResult.durationMs}ms)` : testResult.message }}
             </el-tag>
           </div>
           <div>
@@ -96,7 +97,7 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
 const testing = ref(false)
-const testResult = ref<{ success: boolean; message: string; durationMs: number } | null>(null)
+const testResult = ref<{ ok: boolean; message: string; durationMs: number } | null>(null)
 const formRef = ref<FormInstance>()
 
 const defaultForm = () => ({
@@ -127,10 +128,16 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openEdit(row: DataSource) {
+async function openEdit(row: DataSource) {
   isEdit.value = true
   form.value = { ...row, password: '' }
   dialogVisible.value = true
+  try {
+    const full: any = await http.get(`/datasources/${row.id}`)
+    form.value = { ...full }
+  } catch {
+    // 加载失败时保留已有信息，密码留空（用户可手动输入）
+  }
 }
 
 function resetForm() {
@@ -172,8 +179,10 @@ async function testConn(id: string) {
   testingId.value = id
   try {
     const res: any = await http.post(`/datasources/${id}/test`)
-    if (res.success) ElMessage.success('连接成功')
+    if (res.ok) ElMessage.success('连接成功')
     else ElMessage.error(`连接失败：${res.message}`)
+  } catch {
+    // 错误已由 http 拦截器统一处理
   } finally {
     testingId.value = null
   }

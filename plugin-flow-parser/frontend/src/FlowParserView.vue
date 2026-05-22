@@ -10,15 +10,23 @@
     <div v-show="mainTab === 'parse'">
         <el-card class="fp-input-card">
           <el-tabs v-model="inputMode">
-            <el-tab-pane label="上传XML文件" name="file">
-              <el-upload drag accept=".xml,.txt" :auto-upload="false" :on-change="onFileChange"
+            <el-tab-pane label="上传文件" name="file">
+              <el-upload drag accept=".xml,.txt,.csv" :auto-upload="false" :on-change="onFileChange"
                          :show-file-list="false" style="margin-top:8px;">
                 <el-icon style="font-size:40px;color:#409eff;"><UploadFilled /></el-icon>
-                <div style="margin-top:8px;">拖拽或点击上传 XML 文件（支持单/多流程）</div>
+                <div style="margin-top:8px;">拖拽或点击上传文件（支持 XML / TXT / CSV）</div>
               </el-upload>
               <div v-if="fileName" style="margin-top:8px;color:#67c23a;">
                 <el-icon><Document /></el-icon> {{ fileName }}
               </div>
+              <!-- CSV 列选择 -->
+              <el-form v-if="isCsvFile" label-width="90px" style="margin-top:12px;">
+                <el-form-item label="XML列名">
+                  <el-select v-model="csvXmlColumn" placeholder="选择包含XML内容的列" style="width:260px">
+                    <el-option v-for="col in csvColumns" :key="col" :label="col" :value="col" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
             </el-tab-pane>
             <el-tab-pane label="粘贴XML内容" name="paste">
               <el-input v-model="pasteContent" type="textarea" :rows="8"
@@ -53,6 +61,20 @@
           </div>
         </el-card>
 
+        <!-- 解析错误日志 -->
+        <el-collapse v-if="parseErrors.length" style="margin:12px 0;">
+          <el-collapse-item>
+            <template #title>
+              <el-tag type="warning" size="small" style="margin-right:8px;">{{ parseErrors.length }} 行解析失败</el-tag>
+              <span style="font-size:13px;color:#e6a23c;">点击展开查看详情</span>
+            </template>
+            <el-table :data="parseErrors" border size="small" max-height="280">
+              <el-table-column prop="row" label="行号" width="70" align="center" />
+              <el-table-column prop="error" label="错误信息" show-overflow-tooltip />
+            </el-table>
+          </el-collapse-item>
+        </el-collapse>
+
         <!-- 多流程切换 -->
         <div v-if="flows.length > 1" style="margin:12px 0;">
           <el-tag size="small" style="margin-right:8px;">共 {{ flows.length }} 个流程</el-tag>
@@ -77,9 +99,6 @@
                   </el-button>
                   <el-button size="small" type="success" @click="exportExcel">
                     <el-icon><Download /></el-icon>&nbsp;下载Excel
-                  </el-button>
-                  <el-button size="small" type="primary" @click="showDiagram = true">
-                    <el-icon><Share /></el-icon>&nbsp;生成流程图
                   </el-button>
                 </div>
               </div>
@@ -186,11 +205,6 @@
           </el-card>
         </template>
 
-        <el-dialog v-model="showDiagram" title="流程图" width="90vw" top="3vh"
-                   :close-on-click-modal="false" destroy-on-close>
-          <FlowDiagram v-if="showDiagram && currentFlow"
-                       :nodes="currentFlow.nodes" :lines="currentFlow.lines" />
-        </el-dialog>
 
         <el-dialog v-model="showCheck" title="流程检查结果" width="820px"
                    :close-on-click-modal="false" destroy-on-close>
@@ -218,6 +232,7 @@
             </el-table-column>
             <el-table-column prop="ruleCode" label="规则编号" width="80" />
             <el-table-column prop="ruleName" label="规则名称" width="120" />
+            <el-table-column prop="nodeId"   label="节点编号" width="100" show-overflow-tooltip />
             <el-table-column prop="nodeName" label="关联节点" width="120" show-overflow-tooltip />
             <el-table-column prop="message"  label="问题描述" min-width="200" show-overflow-tooltip />
           </el-table>
@@ -321,13 +336,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-  ElMessage, ElButton, ElCard, ElDescriptions, ElDescriptionsItem, ElDialog,
-  ElForm, ElFormItem, ElIcon, ElInput, ElOption, ElRadioButton, ElRadioGroup,
+  ElMessage, ElButton, ElCard, ElCollapse, ElCollapseItem, ElDescriptions, ElDescriptionsItem,
+  ElDialog, ElForm, ElFormItem, ElIcon, ElInput, ElOption, ElRadioButton, ElRadioGroup,
   ElSelect, ElTabPane, ElTable, ElTableColumn, ElTabs, ElTag, ElUpload
 } from 'element-plus'
 import * as XLSX from 'xlsx'
 import type { ToolboxAPI } from '@toolbox/frontend-sdk'
-import FlowDiagram from './FlowDiagram.vue'
 
 const props = defineProps<{ api: ToolboxAPI; toolId: string }>()
 
@@ -353,7 +367,11 @@ const sqlForm         = ref({ dataSourceId: '', sql: '', xmlField: '' })
 const parsing         = ref(false)
 const flows           = ref<any[]>([])
 const activeFlowIndex = ref(0)
-const showDiagram     = ref(false)
+const parseErrors     = ref<{ row: number; error: string }[]>([])
+const isCsvFile       = ref(false)
+const csvColumns      = ref<string[]>([])
+const csvXmlColumn    = ref('')
+const csvRows         = ref<string[][]>([])
 
 const currentFlow  = computed(() => flows.value[activeFlowIndex.value] ?? null)
 
@@ -395,7 +413,7 @@ function exportCheckExcel() {
   const wb  = XLSX.utils.book_new()
   const rows = checkIssues.value.map((i: any) => ({
     '级别': i.level, '规则编号': i.ruleCode, '规则名称': i.ruleName,
-    '关联节点': i.nodeName ?? '', '问题描述': i.message,
+    '节点编号': i.nodeId ?? '', '关联节点': i.nodeName ?? '', '问题描述': i.message,
   }))
   const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ '结果': '未发现配置问题' }])
   XLSX.utils.book_append_sheet(wb, ws, '流程检查结果')
@@ -405,8 +423,21 @@ function exportCheckExcel() {
 
 function onFileChange(file: any) {
   fileName.value = file.name
+  isCsvFile.value = file.name.toLowerCase().endsWith('.csv')
   const reader = new FileReader()
-  reader.onload = e => { fileContent.value = e.target?.result as string ?? '' }
+  reader.onload = e => {
+    const text = e.target?.result as string ?? ''
+    if (isCsvFile.value) {
+      const wb = XLSX.read(text, { type: 'string' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const data = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 })
+      csvColumns.value = (data[0] ?? []).map(String)
+      csvRows.value = data.slice(1).map(row => (row as any[]).map(v => v == null ? '' : String(v)))
+      csvXmlColumn.value = csvColumns.value[0] ?? ''
+    } else {
+      fileContent.value = text
+    }
+  }
   reader.readAsText(file.raw, 'UTF-8')
 }
 
@@ -417,8 +448,16 @@ async function doParse() {
   try {
     let result: any
     if (inputMode.value === 'file') {
-      if (!fileContent.value) { ElMessage.warning('请先上传XML文件'); return }
-      result = await props.api.plugin.callSync('parseXml', { xmlContent: fileContent.value })
+      if (isCsvFile.value) {
+        if (!csvXmlColumn.value) { ElMessage.warning('请选择包含XML内容的列'); return }
+        const colIdx = csvColumns.value.indexOf(csvXmlColumn.value)
+        const xmlList = csvRows.value.map(r => r[colIdx] ?? '').filter(v => v.trim())
+        if (!xmlList.length) { ElMessage.warning('所选列无有效数据'); return }
+        result = await props.api.plugin.callSync('parseXmlList', { xmlList })
+      } else {
+        if (!fileContent.value) { ElMessage.warning('请先上传文件'); return }
+        result = await props.api.plugin.callSync('parseXml', { xmlContent: fileContent.value })
+      }
     } else if (inputMode.value === 'paste') {
       if (!pasteContent.value.trim()) { ElMessage.warning('请粘贴XML内容'); return }
       result = await props.api.plugin.callSync('parseXml', { xmlContent: pasteContent.value })
@@ -429,15 +468,18 @@ async function doParse() {
       result = await props.api.plugin.callSync('parseSql', sqlForm.value)
     }
     flows.value = result.flows ?? []
-    ElMessage.success(`解析完成，共 ${flows.value.length} 个流程`)
+    parseErrors.value = result.parseErrors ?? []
+    const errTip = parseErrors.value.length ? `，${parseErrors.value.length} 行解析失败` : ''
+    ElMessage[parseErrors.value.length ? 'warning' : 'success'](`解析完成，共 ${flows.value.length} 个流程${errTip}`)
   } finally {
     parsing.value = false
   }
 }
 
 function resetParse() {
-  flows.value = []; fileContent.value = ''; fileName.value = ''
+  flows.value = []; parseErrors.value = []; fileContent.value = ''; fileName.value = ''
   pasteContent.value = ''; activeFlowIndex.value = 0
+  isCsvFile.value = false; csvColumns.value = []; csvXmlColumn.value = ''; csvRows.value = []
 }
 
 // ══════════════════════════════════════════════════════════════ XML格式化 ══
@@ -459,8 +501,8 @@ function onFmtFileChange(file: any) {
 
 function formatXml(raw: string): string {
   const INDENT = '  '
-  // 在标签之间插入换行
-  let str = raw.replace(/(>)\s*(<)/g, '$1\n$2').trim()
+  // 统一行尾，然后在标签之间插入换行
+  let str = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/(>)\s*(<)/g, '$1\n$2').trim()
   let pad = 0
   return str.split('\n').map(line => {
     const trimmed = line.trim()

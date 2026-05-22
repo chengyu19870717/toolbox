@@ -42,12 +42,52 @@
         <div class="nav-item nav-item--sub nav-item--add-project" @click="showAddProject = true">
           + 新建项目
         </div>
+
+        <!-- stakeholder groups -->
+        <div class="nav-section-title">
+          👥 干系人群组
+          <span class="nav-section-action" @click="showGroupMgr = !showGroupMgr">{{ showGroupMgr ? '收起' : '管理' }}</span>
+        </div>
+        <div v-if="showGroupMgr" class="group-mgr-panel">
+          <div v-for="g in groups" :key="g.id" class="group-mgr-item">
+            <template v-if="editingGroupId === g.id">
+              <el-input v-model="editGroupName" placeholder="群组名" size="small" style="width:100%" />
+              <el-input v-model="editGroupMembers" placeholder="成员（逗号分隔，姓名/角色）" size="small" style="width:100%;margin-top:4px" type="textarea" :rows="2" />
+              <div style="display:flex;gap:4px;margin-top:4px">
+                <el-button size="small" type="primary" @click="saveEditGroup(g.id)">保存</el-button>
+                <el-button size="small" @click="editingGroupId = ''">取消</el-button>
+              </div>
+            </template>
+            <template v-else>
+              <div class="group-mgr-item__header">
+                <span class="group-mgr-item__name">{{ g.name }}</span>
+                <span class="group-mgr-item__count">{{ g.members.length }}人</span>
+                <span class="group-mgr-item__actions">
+                  <span class="group-action-btn" @click="startEditGroup(g)">✏️</span>
+                  <span class="group-action-btn" @click="deleteGroup(g.id)">🗑️</span>
+                </span>
+              </div>
+              <div class="group-mgr-item__members">{{ g.members.map(m => m.name).join('、') }}</div>
+            </template>
+          </div>
+          <div v-if="showNewGroup" class="group-mgr-item">
+            <el-input v-model="newGroupName" placeholder="群组名" size="small" style="width:100%" />
+            <el-input v-model="newGroupMembers" placeholder="成员（逗号分隔，姓名/角色）" size="small" style="width:100%;margin-top:4px" type="textarea" :rows="2" />
+            <div style="display:flex;gap:4px;margin-top:4px">
+              <el-button size="small" type="primary" @click="saveNewGroup">保存</el-button>
+              <el-button size="small" @click="showNewGroup = false">取消</el-button>
+            </div>
+          </div>
+          <div v-if="!showNewGroup" class="nav-item nav-item--sub nav-item--add-project" @click="showNewGroup = true">
+            + 新建群组
+          </div>
+        </div>
       </div>
 
       <!-- main content -->
       <div class="todo-main">
         <!-- date view header -->
-        <div v-if="isDateView || currentView === 'all' || currentView.startsWith('project:')" class="todo-content-header">
+        <div v-if="isDateView || currentView === 'all' || currentView === 'pending' || currentView.startsWith('project:')" class="todo-content-header">
           <div class="todo-content-header__left">
             <template v-if="isDateView">
               <span class="view-title">{{ dateViewTitle }}</span>
@@ -71,6 +111,9 @@
             </template>
             <template v-else-if="currentView === 'all'">
               <span class="view-title">📋 全部待办</span>
+            </template>
+            <template v-else-if="currentView === 'pending'">
+              <span class="view-title">⏳ 待生效</span>
             </template>
             <template v-else-if="currentView.startsWith('project:')">
               <span class="view-title">📁 {{ currentView.slice(8) }}</span>
@@ -98,18 +141,6 @@
           />
         </div>
 
-        <!-- quick add input -->
-        <div v-if="showQuickAdd && !isReadonly" class="quick-add">
-          <el-input
-            v-model="quickAddText"
-            placeholder="输入任务（支持 📅5/15 #项目 语法）"
-            ref="quickAddRef"
-            @keydown.enter.prevent="submitQuickAdd"
-            @keydown.esc.prevent="cancelQuickAdd"
-            @blur="cancelQuickAdd"
-          />
-          <div class="quick-add-hint">回车保存 · Esc取消 · 📅日期 #项目</div>
-        </div>
 
         <!-- task list -->
         <div class="task-list">
@@ -162,6 +193,7 @@
       :task="editingTask"
       :default-date="currentDateStr"
       :all-projects="allProjectNames"
+      :groups="groups"
       @save="handleEditSave"
       @cancel="showEditDialog = false"
       @delete="handleDelete"
@@ -238,7 +270,7 @@ import {
 } from 'element-plus'
 import type { ToolboxAPI } from '@toolbox/frontend-sdk'
 import type { Task } from './types'
-import { useTodoStore, todayStr, dateOffset, parseQuickInput } from './useTodoStore'
+import { useTodoStore, todayStr, dateOffset } from './useTodoStore'
 import TaskItem from './TaskItem.vue'
 import TaskEditDialog from './TaskEditDialog.vue'
 import SplitDialog from './SplitDialog.vue'
@@ -252,8 +284,9 @@ const {
   allProjectNames, checkRollover, createTask, updateTask, deleteTask,
   completeTask, uncompleteTask, completeSubTask, uncompleteSubTask,
   splitTask, unsplitTask, addProject, getTasksForDate, getTasksForDateWithCompleted,
-  getChildren, getAllPending, searchTasks, getTasksByProject, generateWeeklyReport,
-  exportJson, importJson, tasks, projects,
+  getChildren, getAllPending, getPendingActivation, searchTasks, getTasksByProject,
+  generateWeeklyReport, exportJson, importJson,
+  tasks, projects, groups, addGroup, updateGroup, deleteGroup,
 } = store
 
 // ── mount ─────────────────────────────────────────────────────────────────────
@@ -270,6 +303,7 @@ const navItems = [
   { key: 'dayBefore', icon: '📅', label: '前天' },
   { key: 'divider1',  divider: true, icon: '', label: '' },
   { key: 'all',       icon: '📋', label: '全部待办' },
+  { key: 'pending',   icon: '⏳', label: '待生效' },
   { key: 'search',    icon: '🔍', label: '搜索' },
   { key: 'divider2',  divider: true, icon: '', label: '' },
   { key: 'history',   icon: '🗓️', label: '历史日期' },
@@ -285,13 +319,15 @@ function setView(key: string) {
 // ── badge counts ──────────────────────────────────────────────────────────
 const badgeCounts = computed(() => {
   const today = todayStr()
-  const pending = tasks.value.filter(t => t.status === 'todo' && !t.parentId)
+  const active = tasks.value.filter(t => t.status === 'todo' && !t.parentId && !(t.startDate && t.startDate > today))
+  const inactive = tasks.value.filter(t => t.status === 'todo' && !t.parentId && t.startDate && t.startDate > today)
   const counts: Record<string, number> = {
-    today: pending.filter(t => t.targetDate === today).length,
-    all: pending.length,
+    today: active.filter(t => t.targetDate === today).length,
+    all: active.length,
+    pending: inactive.length,
   }
   for (const name of allProjectNames.value) {
-    counts[`project:${name}`] = pending.filter(t => t.project === name).length
+    counts[`project:${name}`] = active.filter(t => t.project === name).length
   }
   return counts
 })
@@ -342,6 +378,7 @@ function onHistoryDateChange() {
 // ── current task list ──────────────────────────────────────────────────────
 const currentTasks = computed(() => {
   if (currentView.value === 'all') return getAllPending()
+  if (currentView.value === 'pending') return getPendingActivation()
   if (currentView.value.startsWith('project:')) {
     return getTasksByProject(currentView.value.slice(8))
   }
@@ -363,31 +400,10 @@ function doSearch() {
   searchResults.value = searchTasks(searchQuery.value)
 }
 
-// ── quick add ──────────────────────────────────────────────────────────────
-const showQuickAdd = ref(false)
-const quickAddText = ref('')
-const quickAddRef = ref<InstanceType<typeof ElInput>>()
-
+// ── new task ──────────────────────────────────────────────────────────────
 function startNewTask() {
-  showQuickAdd.value = true
-  nextTick(() => quickAddRef.value?.focus())
-}
-
-function submitQuickAdd() {
-  const text = quickAddText.value.trim()
-  if (!text) { cancelQuickAdd(); return }
-
-  const { title, targetDate, project } = parseQuickInput(text, currentDateStr.value)
-  if (!title) { cancelQuickAdd(); return }
-
-  createTask({ title, targetDate, project: project || undefined })
-  quickAddText.value = ''
-  // keep open for next task
-}
-
-function cancelQuickAdd() {
-  showQuickAdd.value = false
-  quickAddText.value = ''
+  editingTask.value = null
+  showEditDialog.value = true
 }
 
 // ── edit dialog ───────────────────────────────────────────────────────────
@@ -407,8 +423,7 @@ function handleEditSave(data: Partial<Task>) {
       if (s.name) store.rememberStakeholder(s.name, s.role ?? '')
     })
   } else {
-    // shouldn't happen via this path
-    if (data.title) createTask({ title: data.title, ...data })
+    if (data.title) createTask({ title: data.title, targetDate: data.targetDate ?? currentDateStr.value, ...data })
   }
   showEditDialog.value = false
   editingTask.value = null
@@ -494,6 +509,42 @@ function submitAddProject() {
   newProjectName.value = ''
   newProjectColor.value = '#4A90D9'
   showAddProject.value = false
+}
+
+// ── group management (sidebar) ────────────────────────────────────────────
+const showGroupMgr = ref(false)
+const showNewGroup = ref(false)
+const newGroupName = ref('')
+const newGroupMembers = ref('')
+const editingGroupId = ref('')
+const editGroupName = ref('')
+const editGroupMembers = ref('')
+
+function parseMembersStr(str: string) {
+  return str.split(/[,，]/).map(s => s.trim()).filter(Boolean).map(s => {
+    const [name, role] = s.split(/[/／]/).map(p => p.trim())
+    return { name, role: role ?? '' }
+  })
+}
+
+function saveNewGroup() {
+  if (!newGroupName.value.trim()) return
+  addGroup(newGroupName.value.trim(), parseMembersStr(newGroupMembers.value))
+  newGroupName.value = ''
+  newGroupMembers.value = ''
+  showNewGroup.value = false
+}
+
+function startEditGroup(g: { id: string; name: string; members: { name: string; role?: string }[] }) {
+  editingGroupId.value = g.id
+  editGroupName.value = g.name
+  editGroupMembers.value = g.members.map(m => m.role ? `${m.name}/${m.role}` : m.name).join('，')
+}
+
+function saveEditGroup(id: string) {
+  if (!editGroupName.value.trim()) return
+  updateGroup(id, editGroupName.value.trim(), parseMembersStr(editGroupMembers.value))
+  editingGroupId.value = ''
 }
 
 // ── weekly report ──────────────────────────────────────────────────────────
@@ -646,7 +697,20 @@ onMounted(() => { document.addEventListener('keydown', onKeydown) })
   flex-shrink: 0;
 }
 .nav-item--active .nav-badge { background: #409eff; }
-.nav-section-title { padding: 10px 16px 4px; font-size: 11px; color: #c0c4cc; text-transform: uppercase; letter-spacing: 0.05em; }
+.nav-section-title { padding: 10px 16px 4px; font-size: 11px; color: #c0c4cc; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; justify-content: space-between; }
+.nav-section-action { font-size: 11px; color: #909399; cursor: pointer; text-transform: none; letter-spacing: 0; padding-right: 4px; }
+.nav-section-action:hover { color: #409eff; }
+
+.group-mgr-panel { padding: 4px 12px 8px; }
+.group-mgr-item { background: #f7f8fa; border-radius: 6px; padding: 8px; margin-bottom: 6px; }
+.group-mgr-item__header { display: flex; align-items: center; gap: 4px; }
+.group-mgr-item__name { font-size: 13px; font-weight: 500; color: #303133; flex: 1; }
+.group-mgr-item__count { font-size: 11px; color: #909399; }
+.group-mgr-item__actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
+.group-mgr-item:hover .group-mgr-item__actions { opacity: 1; }
+.group-action-btn { cursor: pointer; padding: 2px 3px; border-radius: 3px; font-size: 12px; }
+.group-action-btn:hover { background: #e4e7ed; }
+.group-mgr-item__members { font-size: 11px; color: #909399; margin-top: 3px; word-break: break-all; }
 
 /* main */
 .todo-main {

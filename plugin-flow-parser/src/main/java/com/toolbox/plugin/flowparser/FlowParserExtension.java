@@ -33,10 +33,11 @@ public class FlowParserExtension implements ToolExtension {
     @Override
     public SyncHandler getSyncHandler() {
         return (action, params) -> switch (action) {
-            case "parseXml"    -> handleParseXml(params);
-            case "parseSql"    -> handleParseSql(params);
-            case "queryRawXml" -> handleQueryRawXml(params);
-            case "checkFlow"   -> handleCheckFlow(params);
+            case "parseXml"     -> handleParseXml(params);
+            case "parseXmlList" -> handleParseXmlList(params);
+            case "parseSql"     -> handleParseSql(params);
+            case "queryRawXml"  -> handleQueryRawXml(params);
+            case "checkFlow"    -> handleCheckFlow(params);
             default -> throw new ValidationException("Unknown action: " + action);
         };
     }
@@ -48,6 +49,36 @@ public class FlowParserExtension implements ToolExtension {
         List<FlowData> flows = parser.parse(xmlContent);
         if (flows.isEmpty()) throw new ValidationException("未解析到有效的流程定义，请检查XML格式");
         return Map.of("flows", flows);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object handleParseXmlList(Map<String, Object> params) throws Exception {
+        List<String> xmlList = (List<String>) params.get("xmlList");
+        if (xmlList == null || xmlList.isEmpty()) throw new ValidationException("xmlList 不能为空");
+
+        List<FlowData> flows = new java.util.ArrayList<>();
+        List<Map<String, Object>> parseErrors = new java.util.ArrayList<>();
+        for (int i = 0; i < xmlList.size(); i++) {
+            String xml = xmlList.get(i);
+            if (xml == null || xml.isBlank()) continue;
+            try {
+                List<FlowData> parsed = parser.parse(xml);
+                if (parsed.isEmpty()) {
+                    parseErrors.add(Map.of("row", i + 1, "error", "未从该行数据中解析到有效的 mxGraphModel 节点"));
+                } else {
+                    flows.addAll(parsed);
+                }
+            } catch (Exception e) {
+                ctx.getLogger().warn("第 {} 行解析失败: {}", i + 1, e.getMessage());
+                parseErrors.add(Map.of("row", i + 1, "error", e.getMessage()));
+            }
+        }
+        if (flows.isEmpty()) {
+            String detail = parseErrors.isEmpty() ? "请确认XML列内容"
+                : "首条错误：" + parseErrors.get(0).get("error");
+            throw new ValidationException("CSV解析完成但未找到有效流程，" + detail);
+        }
+        return Map.of("flows", flows, "parseErrors", parseErrors);
     }
 
     private Object handleParseSql(Map<String, Object> params) throws Exception {
@@ -78,21 +109,36 @@ public class FlowParserExtension implements ToolExtension {
                         .map(c -> c.getName()).toList());
         }
 
-        // 每行 XML 单独解析，合并为流程列表
+        // 每行 XML 单独解析，合并为流程列表，收集失败行信息
         final int finalColIdx = colIdx;
         List<FlowData> flows = new java.util.ArrayList<>();
-        for (Object[] row : result.getRows()) {
-            Object val = row[finalColIdx];
+        List<Map<String, Object>> parseErrors = new java.util.ArrayList<>();
+        List<Object[]> rows = result.getRows();
+        for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
+            Object val = rows.get(rowIdx)[finalColIdx];
             if (val == null || val.toString().isBlank()) continue;
             try {
-                flows.addAll(parser.parse(val.toString()));
+                List<FlowData> parsed = parser.parse(val.toString());
+                if (parsed.isEmpty()) {
+                    parseErrors.add(Map.of(
+                        "row", rowIdx + 1,
+                        "error", "未从该行数据中解析到有效的 mxGraphModel 节点，请确认 XML 字段内容是否完整"
+                    ));
+                } else {
+                    flows.addAll(parsed);
+                }
             } catch (Exception e) {
-                ctx.getLogger().warn("行解析失败，跳过: {}", e.getMessage());
+                ctx.getLogger().warn("第 {} 行解析失败: {}", rowIdx + 1, e.getMessage());
+                parseErrors.add(Map.of("row", rowIdx + 1, "error", e.getMessage()));
             }
         }
 
-        if (flows.isEmpty()) throw new ValidationException("SQL执行成功但未解析到有效流程，请确认XML字段内容");
-        return Map.of("flows", flows);
+        if (flows.isEmpty()) {
+            String detail = parseErrors.isEmpty() ? "请确认XML字段内容"
+                : "首条错误：" + parseErrors.get(0).get("error");
+            throw new ValidationException("SQL执行成功但未解析到有效流程，" + detail);
+        }
+        return Map.of("flows", flows, "parseErrors", parseErrors);
     }
 
     private Object handleQueryRawXml(Map<String, Object> params) throws Exception {
@@ -118,7 +164,9 @@ public class FlowParserExtension implements ToolExtension {
         List<String> xmlList = new java.util.ArrayList<>();
         for (Object[] row : result.getRows()) {
             Object val = row[finalColIdx];
-            if (val != null && !val.toString().isBlank()) xmlList.add(val.toString());
+            if (val != null && !val.toString().isBlank()) {
+                xmlList.add(val.toString().replace("\r\n", "\n").replace("\r", "\n"));
+            }
         }
         if (xmlList.isEmpty()) throw new ValidationException("SQL执行成功但未查询到XML内容");
         return Map.of("xmlList", xmlList);

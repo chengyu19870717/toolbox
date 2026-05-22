@@ -15,6 +15,7 @@ export interface Task {
   parentId?: string
   status: TaskStatus
   isSplit: boolean
+  startDate?: string        // YYYY-MM-DD, task is inactive before this date
   targetDate: string        // YYYY-MM-DD
   project?: string
   stakeholders?: Stakeholder[]
@@ -31,6 +32,19 @@ export interface Project {
   name: string
   color: string
   sortIndex: number
+  createdAt: string
+}
+
+export interface GroupMember {
+  name: string
+  role?: string
+  remark?: string
+}
+
+export interface StakeholderGroup {
+  id: string
+  name: string
+  members: GroupMember[]
   createdAt: string
 }
 

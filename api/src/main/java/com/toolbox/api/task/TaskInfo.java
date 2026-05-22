@@ -2,6 +2,7 @@ package com.toolbox.api.task;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public class TaskInfo {
 
@@ -18,6 +19,7 @@ public class TaskInfo {
     private Instant finishedAt;
     private String errorMessage;
     private List<TaskArtifact> artifacts;
+    private Map<String, Object> summary;
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -45,4 +47,6 @@ public class TaskInfo {
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
     public List<TaskArtifact> getArtifacts() { return artifacts; }
     public void setArtifacts(List<TaskArtifact> artifacts) { this.artifacts = artifacts; }
+    public Map<String, Object> getSummary() { return summary; }
+    public void setSummary(Map<String, Object> summary) { this.summary = summary; }
 }

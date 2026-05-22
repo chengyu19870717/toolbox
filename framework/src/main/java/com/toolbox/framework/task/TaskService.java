@@ -74,11 +74,13 @@ public class TaskService implements TaskManager {
                   payload TEXT,
                   error_message TEXT,
                   artifacts TEXT,
+                  summary TEXT,
                   submitted_at INTEGER NOT NULL,
                   started_at INTEGER,
                   finished_at INTEGER
                 )
             """);
+            ensureColumn(conn, "tasks", "summary", "TEXT");
             s.execute("CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(username, submitted_at DESC)");
             s.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)");
         }
@@ -223,9 +225,11 @@ public class TaskService implements TaskManager {
 
             TaskResult result = handler.execute(ctx);
             List<TaskArtifact> artifacts = result.getArtifacts();
-            persistSuccess(taskId, artifacts);
+            Map<String, Object> summary = result.getSummary();
+            persistSuccess(taskId, artifacts, summary);
             pushEvent(taskId, "completed", Map.of(
                 "taskId", taskId,
+                "summary", summary,
                 "artifacts", artifacts.stream().map(a ->
                     Map.of("name", a.getName(), "sizeBytes", a.getSizeBytes(),
                            "contentType", a.getContentType() != null ? a.getContentType() : "")
@@ -259,7 +263,7 @@ public class TaskService implements TaskManager {
     private void persistInsert(TaskInfo info, Map<String, Object> payload) {
         try (Connection conn = getConn();
              PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO tasks(id,plugin_id,task_type,name,username,status,progress_percent,payload,artifacts,submitted_at) VALUES(?,?,?,?,?,?,?,?,?,?)")) {
+                "INSERT INTO tasks(id,plugin_id,task_type,name,username,status,progress_percent,payload,artifacts,summary,submitted_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)")) {
             ps.setString(1, info.getId());
             ps.setString(2, info.getPluginId());
             ps.setString(3, info.getTaskType());
@@ -269,7 +273,8 @@ public class TaskService implements TaskManager {
             ps.setInt(7, 0);
             ps.setString(8, payload != null ? mapper.writeValueAsString(payload) : "{}");
             ps.setString(9, "[]");
-            ps.setLong(10, info.getSubmittedAt().toEpochMilli());
+            ps.setString(10, "{}");
+            ps.setLong(11, info.getSubmittedAt().toEpochMilli());
             ps.executeUpdate();
         } catch (Exception e) {
             log.error("Failed to insert task {}", info.getId(), e);
@@ -321,14 +326,15 @@ public class TaskService implements TaskManager {
         }
     }
 
-    private void persistSuccess(String taskId, List<TaskArtifact> artifacts) {
+    private void persistSuccess(String taskId, List<TaskArtifact> artifacts, Map<String, Object> summary) {
         try (Connection conn = getConn();
              PreparedStatement ps = conn.prepareStatement(
-                "UPDATE tasks SET status=?, progress_percent=100, finished_at=?, artifacts=? WHERE id=?")) {
+                "UPDATE tasks SET status=?, progress_percent=100, finished_at=?, artifacts=?, summary=? WHERE id=?")) {
             ps.setString(1, TaskStatus.SUCCESS.name());
             ps.setLong(2, System.currentTimeMillis());
             ps.setString(3, mapper.writeValueAsString(artifacts));
-            ps.setString(4, taskId);
+            ps.setString(4, mapper.writeValueAsString(summary != null ? summary : Map.of()));
+            ps.setString(5, taskId);
             ps.executeUpdate();
         } catch (Exception e) {
             log.error("Failed to persist success for task {}", taskId, e);
@@ -410,7 +416,29 @@ public class TaskService implements TaskManager {
         } catch (Exception e) {
             info.setArtifacts(List.of());
         }
+        try {
+            String summaryJson = rs.getString("summary");
+            if (summaryJson != null && !summaryJson.isBlank()) {
+                info.setSummary(mapper.readValue(summaryJson, Map.class));
+            } else {
+                info.setSummary(Map.of());
+            }
+        } catch (Exception e) {
+            info.setSummary(Map.of());
+        }
         return info;
+    }
+
+    private void ensureColumn(Connection conn, String tableName, String columnName, String columnType) throws SQLException {
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (rs.next()) {
+                if (columnName.equalsIgnoreCase(rs.getString("name"))) return;
+            }
+        }
+        try (Statement st = conn.createStatement()) {
+            st.execute("ALTER TABLE " + tableName + " ADD COLUMN " + columnName + " " + columnType);
+        }
     }
 
     // ── SSE 工具 ─────────────────────────────────────────────────────────

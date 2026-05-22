@@ -191,6 +191,10 @@ public class DataSourceService implements DataSourceManager {
         incoming.setVersion(existing.getVersion() + 1);
         incoming.setCreatedAt(existing.getCreatedAt());
         incoming.setUpdatedAt(Instant.now());
+        // 密码为空时保留原密码（前端编辑时不一定回传密码）
+        if (incoming.getPassword() == null || incoming.getPassword().isBlank()) {
+            incoming.setPassword(existing.getPassword());
+        }
 
         configs.removeIf(c -> c.getId().equals(id));
         configs.add(incoming);
@@ -242,7 +246,10 @@ public class DataSourceService implements DataSourceManager {
         hk.setConnectionTimeout(cfg.getPoolConfig().getConnectionTimeoutMs());
         hk.setIdleTimeout(cfg.getPoolConfig().getIdleTimeoutMs());
         hk.setMaxLifetime(cfg.getPoolConfig().getMaxLifetimeMs());
-        hk.setPoolName("tb-" + cfg.getId().substring(0, 8));
+        String idPrefix = (cfg.getId() != null && cfg.getId().length() >= 8)
+                ? cfg.getId().substring(0, 8)
+                : "tmp-" + Integer.toHexString(cfg.hashCode());
+        hk.setPoolName("tb-" + idPrefix);
         return new HikariDataSource(hk);
     }
 
@@ -253,8 +260,6 @@ public class DataSourceService implements DataSourceManager {
 
         Map<String, String> params = cfg.getParams() != null ? cfg.getParams() : Map.of();
         Map<String, String> merged = new LinkedHashMap<>();
-        merged.put("useUnicode", "true");
-        merged.put("characterEncoding", "utf8mb4");
         merged.put("useSSL", "false");
         merged.put("serverTimezone", "Asia/Shanghai");
         merged.putAll(params);

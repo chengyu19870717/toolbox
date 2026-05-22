@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { Task, Project, StakeholderMemory, WeeklyReport, DailyStat } from './types'
+import type { Task, Project, StakeholderMemory, StakeholderGroup, GroupMember, WeeklyReport, DailyStat } from './types'
 
 // ── storage keys ──────────────────────────────────────────────────────────────
 const KEYS = {
@@ -8,6 +8,7 @@ const KEYS = {
   settings: 'todo_settings',
   memory: 'todo_stakeholder_memory',
   reports: 'todo_weekly_reports',
+  groups: 'todo_stakeholder_groups',
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -126,10 +127,33 @@ export function useTodoStore() {
   const tasks = ref<Task[]>(load(KEYS.tasks, []))
   const projects = ref<Project[]>(load(KEYS.projects, []))
   const memory = ref<StakeholderMemory[]>(load(KEYS.memory, []))
+  const groups = ref<StakeholderGroup[]>(load(KEYS.groups, []))
 
   function persistTasks() { save(KEYS.tasks, tasks.value) }
   function persistProjects() { save(KEYS.projects, projects.value) }
   function persistMemory() { save(KEYS.memory, memory.value) }
+  function persistGroups() { save(KEYS.groups, groups.value) }
+
+  // ── group CRUD ────────────────────────────────────────────────────────────
+  function addGroup(name: string, members: GroupMember[]): StakeholderGroup {
+    const g: StakeholderGroup = { id: uuid(), name, members, createdAt: nowIso() }
+    groups.value.push(g)
+    persistGroups()
+    return g
+  }
+
+  function updateGroup(id: string, name: string, members: GroupMember[]) {
+    const g = groups.value.find(x => x.id === id)
+    if (!g) return
+    g.name = name
+    g.members = members
+    persistGroups()
+  }
+
+  function deleteGroup(id: string) {
+    groups.value = groups.value.filter(g => g.id !== id)
+    persistGroups()
+  }
 
   // ── rollover ──────────────────────────────────────────────────────────────
   function checkRollover() {
@@ -169,6 +193,7 @@ export function useTodoStore() {
       parentId: partial.parentId,
       status: 'todo',
       isSplit: false,
+      startDate: partial.startDate,
       targetDate: partial.targetDate ?? today,
       project: partial.project,
       stakeholders: partial.stakeholders ?? [],
@@ -376,10 +401,14 @@ export function useTodoStore() {
   }
 
   // ── queries ───────────────────────────────────────────────────────────────
+  function isInactive(t: Task): boolean {
+    return !!t.startDate && t.startDate > todayStr()
+  }
+
   function getTasksForDate(date: string): Task[] {
-    // top-level tasks for this date (todo + completed on this date)
+    // top-level tasks for this date, excluding not-yet-started tasks
     return tasks.value
-      .filter(t => !t.parentId && t.targetDate === date)
+      .filter(t => !t.parentId && t.targetDate === date && !isInactive(t))
       .sort((a, b) => {
         if (a.status !== b.status) return a.status === 'todo' ? -1 : 1
         return a.sortIndex - b.sortIndex
@@ -410,8 +439,14 @@ export function useTodoStore() {
 
   function getAllPending(): Task[] {
     return tasks.value
-      .filter(t => !t.parentId && t.status === 'todo')
+      .filter(t => !t.parentId && t.status === 'todo' && !isInactive(t))
       .sort((a, b) => a.targetDate < b.targetDate ? -1 : a.targetDate > b.targetDate ? 1 : a.sortIndex - b.sortIndex)
+  }
+
+  function getPendingActivation(): Task[] {
+    return tasks.value
+      .filter(t => !t.parentId && t.status === 'todo' && isInactive(t))
+      .sort((a, b) => a.startDate! < b.startDate! ? -1 : a.startDate! > b.startDate! ? 1 : a.sortIndex - b.sortIndex)
   }
 
   function searchTasks(query: string): Task[] {
@@ -555,7 +590,11 @@ export function useTodoStore() {
     tasks,
     projects,
     memory,
+    groups,
     allProjectNames,
+    addGroup,
+    updateGroup,
+    deleteGroup,
     checkRollover,
     createTask,
     updateTask,
@@ -573,6 +612,7 @@ export function useTodoStore() {
     getTasksForDateWithCompleted,
     getChildren,
     getAllPending,
+    getPendingActivation,
     searchTasks,
     getTasksByProject,
     generateWeeklyReport,

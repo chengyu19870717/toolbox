@@ -2,9 +2,10 @@
   <el-dialog
     :model-value="visible"
     :title="isNew ? '新建任务' : '编辑任务'"
-    width="540px"
+    width="600px"
     @close="$emit('cancel')"
     append-to-body
+    :close-on-click-modal="false"
   >
     <el-form :model="form" label-position="top" size="default">
       <el-form-item label="标题" required>
@@ -21,12 +22,23 @@
         <el-input
           v-model="form.description"
           type="textarea"
-          :rows="2"
+          :rows="4"
           placeholder="补充说明（选填）"
         />
       </el-form-item>
 
       <div style="display:flex;gap:12px;">
+        <el-form-item label="起始日期" style="flex:1">
+          <el-date-picker
+            v-model="form.startDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            format="YYYY年M月D日"
+            placeholder="不限（立即生效）"
+            clearable
+            style="width:100%"
+          />
+        </el-form-item>
         <el-form-item label="截止日期" style="flex:1">
           <el-date-picker
             v-model="form.targetDate"
@@ -36,23 +48,35 @@
             style="width:100%"
           />
         </el-form-item>
-        <el-form-item label="所属项目" style="flex:1">
-          <el-select
-            v-model="form.project"
-            clearable
-            filterable
-            allow-create
-            placeholder="选择或新建项目"
-            style="width:100%"
-          >
-            <el-option v-for="p in allProjects" :key="p" :label="p" :value="p" />
-          </el-select>
-        </el-form-item>
       </div>
+
+      <el-form-item label="所属项目">
+        <el-select
+          v-model="form.project"
+          clearable
+          filterable
+          allow-create
+          placeholder="选择或新建项目"
+          style="width:100%"
+        >
+          <el-option v-for="p in allProjects" :key="p" :label="p" :value="p" />
+        </el-select>
+      </el-form-item>
 
       <!-- stakeholders -->
       <el-form-item label="干系人">
         <div style="width:100%">
+          <!-- group quick-add buttons -->
+          <div v-if="groups && groups.length > 0" class="group-quick-add">
+            <span class="group-quick-add__label">从群组添加：</span>
+            <el-button
+              v-for="g in groups"
+              :key="g.id"
+              size="small"
+              @click="addFromGroup(g)"
+            >{{ g.name }}（{{ g.members.length }}人）</el-button>
+          </div>
+
           <div v-for="(sh, idx) in form.stakeholders" :key="sh.id" class="sh-row">
             <template v-if="editingShIdx === idx">
               <el-input v-model="sh.name" placeholder="姓名" style="width:100px" size="small" />
@@ -60,7 +84,7 @@
                 <el-option v-for="r in roles" :key="r" :label="r" :value="r" />
               </el-select>
               <el-input v-model="sh.remark" placeholder="备注（选填）" style="flex:1" size="small" />
-              <el-button size="small" @click="editingShIdx = -1">✓</el-button>
+              <el-button size="small" @click="confirmStakeholder(idx)">✓</el-button>
             </template>
             <template v-else>
               <span class="sh-name" @click="editingShIdx = idx">👤 {{ sh.name }}</span>
@@ -87,7 +111,7 @@
 <script setup lang="ts">
 import { reactive, ref, watch, nextTick } from 'vue'
 import { ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElSelect, ElOption, ElDatePicker } from 'element-plus'
-import type { Task, Stakeholder } from './types'
+import type { Task, Stakeholder, StakeholderGroup } from './types'
 import { todayStr, uuid } from './useTodoStore'
 
 const props = defineProps<{
@@ -95,6 +119,7 @@ const props = defineProps<{
   task?: Task | null
   defaultDate?: string
   allProjects: string[]
+  groups?: StakeholderGroup[]
 }>()
 
 const emit = defineEmits<{
@@ -112,6 +137,7 @@ const roles = ['需求方', '开发', '测试', '审批人', '协作人', '知�
 const form = reactive({
   title: '',
   description: '',
+  startDate: '' as string | undefined,
   targetDate: todayStr(),
   project: '',
   stakeholders: [] as Stakeholder[],
@@ -124,6 +150,7 @@ watch(() => props.visible, async (v) => {
     isNew.value = false
     form.title = props.task.title
     form.description = props.task.description ?? ''
+    form.startDate = props.task.startDate ?? ''
     form.targetDate = props.task.targetDate
     form.project = props.task.project ?? ''
     form.stakeholders = props.task.stakeholders ? JSON.parse(JSON.stringify(props.task.stakeholders)) : []
@@ -131,6 +158,7 @@ watch(() => props.visible, async (v) => {
     isNew.value = true
     form.title = ''
     form.description = ''
+    form.startDate = ''
     form.targetDate = props.defaultDate ?? todayStr()
     form.project = ''
     form.stakeholders = []
@@ -140,8 +168,18 @@ watch(() => props.visible, async (v) => {
 })
 
 function addStakeholder() {
+  // 先保存当前正在编辑的条目（若为空则丢弃）
+  if (editingShIdx.value >= 0) confirmStakeholder(editingShIdx.value)
   form.stakeholders.push({ id: uuid(), name: '', role: '', remark: '', addedAt: new Date().toISOString() })
   editingShIdx.value = form.stakeholders.length - 1
+}
+
+function confirmStakeholder(idx: number) {
+  const sh = form.stakeholders[idx]
+  if (!sh.name.trim()) {
+    form.stakeholders.splice(idx, 1)
+  }
+  editingShIdx.value = -1
 }
 
 function removeStakeholder(idx: number) {
@@ -149,16 +187,28 @@ function removeStakeholder(idx: number) {
   if (editingShIdx.value >= form.stakeholders.length) editingShIdx.value = -1
 }
 
+function addFromGroup(g: StakeholderGroup) {
+  const existing = new Set(form.stakeholders.map(s => s.name))
+  for (const m of g.members) {
+    if (m.name && !existing.has(m.name)) {
+      form.stakeholders.push({ id: uuid(), name: m.name, role: m.role ?? '', remark: m.remark ?? '', addedAt: new Date().toISOString() })
+      existing.add(m.name)
+    }
+  }
+}
+
 function handleSave() {
   if (!form.title.trim()) return
   emit('save', {
     title: form.title.trim(),
     description: form.description.trim() || undefined,
+    startDate: form.startDate || undefined,
     targetDate: form.targetDate,
     project: form.project || undefined,
     stakeholders: form.stakeholders.filter(s => s.name.trim()),
   })
 }
+
 </script>
 
 <style scoped>
@@ -174,4 +224,13 @@ function handleSave() {
 .sh-name:hover { text-decoration: underline; }
 .sh-role { font-size: 12px; color: #909399; background: #f0f2f5; border-radius: 3px; padding: 0 6px; }
 .sh-remark { font-size: 12px; color: #c0c4cc; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.group-quick-add {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.group-quick-add__label { font-size: 12px; color: #909399; flex-shrink: 0; }
 </style>

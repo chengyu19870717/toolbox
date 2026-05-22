@@ -1,5 +1,5 @@
 <template>
-  <div class="task-item" :class="[`task-item--${task.status}`, { 'task-item--overdue': isOverdue, 'task-item--warning': isWarning }]">
+  <div class="task-item" :class="[`task-item--${task.status}`, { 'task-item--overdue': isOverdue, 'task-item--warning': isWarning, 'task-item--inactive': isInactive }]">
     <div class="task-item__main">
       <!-- checkbox -->
       <span class="task-item__check" @click.stop="onToggle">
@@ -16,8 +16,10 @@
 
       <!-- meta row -->
       <div class="task-item__meta">
+        <!-- inactive badge -->
+        <span v-if="isInactive" class="task-item__inactive-badge">⏳ 待生效 {{ task.startDate }}</span>
         <!-- date badge -->
-        <span v-if="task.status === 'todo'" class="task-item__date" :class="dateBadgeClass">
+        <span v-else-if="task.status === 'todo'" class="task-item__date" :class="dateBadgeClass">
           📅 {{ dateLabel }}
         </span>
         <span v-else class="task-item__completed-badge">✅</span>
@@ -113,8 +115,11 @@ const showStakeholders = ref(false)
 const stakeholders = computed(() => props.task.stakeholders ?? [])
 const today = todayStr()
 
+const isInactive = computed(() =>
+  !!props.task.startDate && props.task.startDate > today
+)
 const isOverdue = computed(() =>
-  props.task.status === 'todo' && props.task.targetDate < today
+  props.task.status === 'todo' && props.task.targetDate < today && !isInactive.value
 )
 const isWarning = computed(() => {
   if (props.task.status !== 'todo') return false
@@ -162,6 +167,7 @@ function onToggleChild(child: Task) {
 .task-item--completed { opacity: 0.65; }
 .task-item--overdue { border-left: 3px solid #f56c6c; }
 .task-item--warning { border-left: 3px solid #e6a23c; }
+.task-item--inactive { border-left: 3px solid #909399; opacity: 0.75; }
 
 .task-item__main { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
 
@@ -207,6 +213,7 @@ function onToggleChild(child: Task) {
 }
 .date-badge--overdue { background: #fef0f0; color: #f56c6c; }
 .date-badge--warning { background: #fdf6ec; color: #e6a23c; }
+.task-item__inactive-badge { font-size: 12px; color: #909399; background: #f4f4f5; border-radius: 4px; padding: 1px 6px; }
 
 .task-item__completed-badge { font-size: 12px; }
 

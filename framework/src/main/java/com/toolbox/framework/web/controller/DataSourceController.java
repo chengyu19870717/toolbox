@@ -28,7 +28,7 @@ public class DataSourceController {
 
     @GetMapping("/{id}")
     public DataSourceConfig get(@PathVariable String id) {
-        return maskPassword(service.getConfig(id));
+        return service.getConfig(id);
     }
 
     @PostMapping

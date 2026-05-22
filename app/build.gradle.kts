@@ -9,6 +9,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
     runtimeOnly(project(":plugin-flow-parser"))
     runtimeOnly(project(":plugin-todo"))
+    runtimeOnly(project(":plugin-data-standard"))
+    runtimeOnly(project(":plugin-file-search"))
 }
 
 // Spring Boot 可执行 jar
@@ -63,11 +65,17 @@ tasks.register("packageWindows") {
             into("$distDir/config")
         }
 
-        // 启动脚本
+        // 启动脚本（纯 ASCII，避免编码问题）
         file("$distDir/bin/start.bat").writeText("""
 @echo off
 set BASE=%~dp0..
-"%BASE%\jre\bin\java.exe" @"%BASE%\bin\toolbox.vmoptions" -jar "%BASE%\lib\toolbox-app.jar" --spring.config.location=file:"%BASE%\config\application.yml"
+cd /d "%BASE%"
+
+if exist "%BASE%\jre\bin\java.exe" (
+    "%BASE%\jre\bin\java.exe" @"%BASE%\bin\toolbox.vmoptions" -jar "%BASE%\lib\toolbox-app.jar" --spring.config.location=file:"%BASE%\config\application.yml"
+) else (
+    java @"%BASE%\bin\toolbox.vmoptions" -jar "%BASE%\lib\toolbox-app.jar" --spring.config.location=file:"%BASE%\config\application.yml"
+)
 """.trimIndent())
 
         file("$distDir/bin/toolbox.vmoptions").writeText("""

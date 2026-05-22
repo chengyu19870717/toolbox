@@ -44,7 +44,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 // 把 username 放进 request attribute，方便 ThreadLocal 获取
                 req.setAttribute("currentUser", username);
-            } catch (JwtException ignored) {}
+            } catch (Exception ignored) {}
         }
         chain.doFilter(req, res);
     }

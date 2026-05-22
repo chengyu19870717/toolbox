@@ -15,6 +15,7 @@ export interface QueryRequest {
   dataSourceId: string
   sql: string
   params?: unknown[]
+  timeoutSeconds?: number
   maxRows?: number
 }
 
@@ -49,6 +50,7 @@ export interface TaskInfo {
   finishedAt: string | null
   errorMessage: string | null
   artifacts: Artifact[]
+  summary: Record<string, unknown>
 }
 
 export interface Artifact {
@@ -60,6 +62,8 @@ export interface Artifact {
 export interface TaskSubmitRequest {
   name?: string
   taskType?: string
+  /** @deprecated use taskType */
+  type?: string
   payload: Record<string, unknown>
 }
 
@@ -72,6 +76,7 @@ export interface ProgressEvent {
 export interface DataSourceAPI {
   list(): Promise<DataSourceInfo[]>
   query(req: QueryRequest): Promise<QueryResult>
+  testConnection(dataSourceId: string): Promise<{ ok: boolean; message?: string; durationMs: number }>
 }
 
 /** 任务 API */
@@ -85,7 +90,7 @@ export interface TaskAPI {
     taskId: string,
     handlers: {
       onProgress?: (evt: ProgressEvent) => void
-      onCompleted?: (artifacts: Artifact[]) => void
+      onCompleted?: (artifacts: Artifact[], summary?: Record<string, unknown>) => void
       onFailed?: (error: string) => void
       onCancelled?: () => void
     }
@@ -99,7 +104,14 @@ export interface PluginAPI {
 
 /** 文件 API */
 export interface FileAPI {
-  upload(file: File, onProgress?: (percent: number) => void): Promise<{ fileId: string; filename: string; size: number }>
+  upload(file: File, onProgress?: (percent: number) => void): Promise<{
+    fileId: string
+    originalName: string
+    path: string
+    sizeBytes: number
+    contentType: string
+    uploadedAt: string
+  }>
   downloadUrl(taskId: string, name: string): string
   download(taskId: string, name: string): void
 }

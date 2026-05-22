@@ -97,7 +97,7 @@ public class PluginController {
         if (ext.getTaskHandler() == null) throw new ValidationException("工具不支持后台任务: " + toolId);
 
         String name = (String) body.getOrDefault("name", ext.getName() + " 任务");
-        String taskType = (String) body.getOrDefault("taskType", "default");
+        String taskType = (String) body.getOrDefault("taskType", body.getOrDefault("type", "default"));
         @SuppressWarnings("unchecked")
         Map<String, Object> payload = (Map<String, Object>) body.getOrDefault("payload", Map.of());
 

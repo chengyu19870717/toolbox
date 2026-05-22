@@ -56,7 +56,7 @@ public class FlowCheckService {
     // ── 规则：过程节点必须配置处理人 ────────────────────────────────────────
     private void checkProcessNodeUser(FlowData flow, List<CheckIssue> issues) {
         for (NodeInfo node : flow.nodes) {
-            if (!"P".equals(node.nodeType)) continue;
+            if (!isProcessNode(node)) continue;
             boolean empty = node.nodeUser == null || node.nodeUser.isBlank();
             if (empty) {
                 issues.add(new CheckIssue("ERROR", "R004", "处理人配置检查",
@@ -66,16 +66,16 @@ public class FlowCheckService {
         }
     }
 
-    // ── 规则：只有开始节点、结束节点、人员为"流程发起者"的节点允许 noUserJump="0" ──
+    // ── 规则：无人跳过为“是”时，只允许开始/结束节点或流程发起者节点 ────────────────
     private void checkNoUserJump(FlowData flow, List<CheckIssue> issues) {
         for (NodeInfo node : flow.nodes) {
-            if (!"0".equals(node.noUserJump)) continue;
-            boolean isStartOrEnd = "S".equals(node.nodeType) || "E".equals(node.nodeType);
-            boolean isInitiator  = node.convertLabel != null && node.convertLabel.contains("流程发起者");
+            if (!"1".equals(node.noUserJump)) continue;
+            boolean isStartOrEnd  = "S".equals(node.nodeType) || "E".equals(node.nodeType);
+            boolean isInitiator   = node.convertLabel != null && node.convertLabel.contains("流程发起者");
             if (!isStartOrEnd && !isInitiator) {
                 issues.add(new CheckIssue("ERROR", "R006", "无人跳过配置检查",
                         node.nid, node.label,
-                        "节点「" + node.label + "」的无人跳过配置不合规，仅开始/结束节点或流程发起者节点允许此配置"));
+                        "节点「" + node.label + "」的无人跳过配置不合规，仅开始/结束节点或流程发起者节点允许配置为“是”"));
             }
         }
     }
@@ -83,13 +83,17 @@ public class FlowCheckService {
     // ── 规则：所有过程节点应配置消息通知，不允许为空 ────────────────────────
     private void checkProcessNodeNotice(FlowData flow, List<CheckIssue> issues) {
         for (NodeInfo node : flow.nodes) {
-            if (!"P".equals(node.nodeType)) continue;
-            boolean empty = node.noticeType == null || node.noticeType.isBlank();
+            if (!isProcessNode(node)) continue;
+            boolean empty = node.noticeType == null || node.noticeType.isBlank() || "0".equals(node.noticeType);
             if (empty) {
                 issues.add(new CheckIssue("WARN", "R007", "消息通知配置检查",
                         node.nid, node.label,
                         "节点「" + node.label + "」未配置消息通知"));
             }
         }
+    }
+
+    private boolean isProcessNode(NodeInfo node) {
+        return "0".equals(node.nodeType) || "P".equals(node.nodeType);
     }
 }
