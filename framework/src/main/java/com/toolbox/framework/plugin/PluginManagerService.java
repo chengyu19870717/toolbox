@@ -15,12 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.Collections;
-import java.util.stream.Collectors;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 @Service
 public class PluginManagerService {
@@ -53,52 +52,89 @@ public class PluginManagerService {
         Path pluginsDir = Path.of(props.getPaths().getPluginsDir());
         Files.createDirectories(pluginsDir);
 
-        deduplicatePlugins(pluginsDir);
+        // 读取每个 jar 的 Plugin-Id，为每个 ID 只保留最新修改的 jar 加载
+        // 不依赖文件删除（Windows 下旧进程可能锁文件），完全规避重复插件问题
+        Collection<Path> toLoad = selectLatestPlugins(pluginsDir);
 
-        pf4jManager = new DefaultPluginManager(pluginsDir);
-        pf4jManager.loadPlugins();
+        pf4jManager = new DefaultPluginManager(pluginsDir) {
+            @Override
+            public void loadPlugins() {
+                // 不自动扫描目录，由外部显式指定要加载的 jar
+            }
+        };
+
+        for (Path jar : toLoad) {
+            try {
+                pf4jManager.loadPlugin(jar);
+            } catch (Exception e) {
+                log.error("加载插件失败，已跳过: {} - {}", jar.getFileName(), e.getMessage());
+            }
+        }
         pf4jManager.startPlugins();
 
         for (PluginWrapper wrapper : pf4jManager.getStartedPlugins()) {
-            String pluginId = wrapper.getPluginId();
-            initPluginContext(wrapper, pluginId);
+            initPluginContext(wrapper, wrapper.getPluginId());
         }
 
         log.info("PluginManager initialized, {} plugins loaded", pf4jManager.getStartedPlugins().size());
     }
 
     /**
-     * 扫描插件目录，当同一基础名称存在多个 jar 时，保留最新修改时间的那个，删除其余旧版本。
-     * 用 lastModified 而非文件名排序，避免 "1.0.10" < "1.0.9" 的字符串比较陷阱。
+     * 扫描 pluginsDir 下所有 jar，读取 MANIFEST.MF 里的 Plugin-Id。
+     * 同一 Plugin-Id 出现多个 jar 时，只保留 lastModified 最大的那个。
+     * 不尝试删除任何文件，对 Windows 文件锁友好。
      */
-    private void deduplicatePlugins(Path pluginsDir) throws IOException {
-        Pattern versionPattern = Pattern.compile("^(.+?)-(\\d+\\.\\d+\\.\\d+\\S*)\\.jar$");
-        Map<String, List<Path>> byBaseName = new LinkedHashMap<>();
+    private Collection<Path> selectLatestPlugins(Path pluginsDir) throws IOException {
+        Map<String, Path> latestByPluginId = new LinkedHashMap<>();
+        Map<String, Long> latestModified = new LinkedHashMap<>();
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(pluginsDir, "*.jar")) {
             for (Path jar : stream) {
-                String filename = jar.getFileName().toString();
-                Matcher m = versionPattern.matcher(filename);
-                String key = m.matches() ? m.group(1) : filename;
-                byBaseName.computeIfAbsent(key, k -> new ArrayList<>()).add(jar);
+                String pluginId = readPluginId(jar);
+                if (pluginId == null) {
+                    // 没有 Plugin-Id 的 jar 直接跳过
+                    log.warn("跳过无 Plugin-Id 的 jar: {}", jar.getFileName());
+                    continue;
+                }
+                long modified = Files.getLastModifiedTime(jar).toMillis();
+                if (!latestByPluginId.containsKey(pluginId) || modified > latestModified.get(pluginId)) {
+                    if (latestByPluginId.containsKey(pluginId)) {
+                        log.warn("发现重复插件 [{}]，忽略旧版本: {}，保留: {}",
+                                pluginId, latestByPluginId.get(pluginId).getFileName(), jar.getFileName());
+                    }
+                    latestByPluginId.put(pluginId, jar);
+                    latestModified.put(pluginId, modified);
+                } else {
+                    log.warn("发现重复插件 [{}]，忽略旧版本: {}，保留: {}",
+                            pluginId, jar.getFileName(), latestByPluginId.get(pluginId).getFileName());
+                }
             }
         }
+        return latestByPluginId.values();
+    }
 
-        for (Map.Entry<String, List<Path>> entry : byBaseName.entrySet()) {
-            List<Path> jars = entry.getValue();
-            if (jars.size() <= 1) continue;
-
-            // 按最后修改时间降序，保留最新的，删除其余
-            jars.sort(Comparator.comparingLong(p -> {
-                try { return Files.getLastModifiedTime(p).toMillis(); } catch (IOException e) { return 0L; }
-            }));
-            Collections.reverse(jars);
-            List<Path> toDelete = jars.subList(1, jars.size());
-            for (Path old : toDelete) {
-                log.warn("检测到重复插件，删除旧版本: {}", old.getFileName());
-                Files.deleteIfExists(old);
+    /** 从 jar 的 MANIFEST.MF 读取 Plugin-Id，读取失败返回 null */
+    private String readPluginId(Path jar) {
+        try (JarFile jf = new JarFile(jar.toFile())) {
+            Manifest mf = jf.getManifest();
+            if (mf != null) {
+                String id = mf.getMainAttributes().getValue("Plugin-Id");
+                if (id != null && !id.isBlank()) return id.trim();
             }
+            // 兼容 plugin.properties 格式
+            var entry = jf.getEntry("plugin.properties");
+            if (entry != null) {
+                try (InputStream in = jf.getInputStream(entry)) {
+                    Properties props = new Properties();
+                    props.load(in);
+                    String id = props.getProperty("plugin.id");
+                    if (id != null && !id.isBlank()) return id.trim();
+                }
+            }
+        } catch (IOException e) {
+            log.warn("读取插件元数据失败: {}", jar.getFileName(), e);
         }
+        return null;
     }
 
     @PreDestroy
@@ -115,13 +151,11 @@ public class PluginManagerService {
                     pluginId, dataDir, dataSourceManager, taskManager,
                     notificationService, fileService);
 
-            // 注入 context 到插件入口
             Plugin plugin = wrapper.getPlugin();
             if (plugin instanceof ToolBoxPlugin tbPlugin) {
                 tbPlugin.init(context);
             }
 
-            // 初始化所有扩展点
             List<ToolExtension> extensions = pf4jManager.getExtensions(ToolExtension.class, pluginId);
             for (ToolExtension ext : extensions) {
                 ext.init(context);
@@ -152,7 +186,6 @@ public class PluginManagerService {
                 .findFirst();
     }
 
-    /** 获取指定工具所属插件的 ClassLoader，用于加载插件 jar 内资源 */
     public Optional<ClassLoader> getPluginClassLoader(String toolId) {
         for (Map.Entry<String, List<ToolExtension>> entry : extensionsByPlugin.entrySet()) {
             boolean hasToolId = entry.getValue().stream().anyMatch(e -> e.getId().equals(toolId));
