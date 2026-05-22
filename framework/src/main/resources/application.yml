@@ -44,10 +44,17 @@ spring:
     user:
       name: ignored   # 关闭 Spring Security 默认用户，用自定义 JWT
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,mappings
+
 logging:
   level:
     root: INFO
     com.toolbox: INFO
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
   file:
     name: logs/app.log
   logback:
