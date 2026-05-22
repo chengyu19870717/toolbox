@@ -1,1 +1,22 @@
-[ ]
+[ {
+  "id" : "6a4725ce-d8bc-4f08-92d5-4bd6e0b47e50",
+  "name" : "test-local",
+  "type" : "MYSQL",
+  "host" : "localhost",
+  "port" : 3306,
+  "database" : "test",
+  "username" : "root",
+  "password" : "123456",
+  "remark" : null,
+  "params" : null,
+  "poolConfig" : {
+    "maximumPoolSize" : 10,
+    "minimumIdle" : 2,
+    "connectionTimeoutMs" : 30000,
+    "idleTimeoutMs" : 600000,
+    "maxLifetimeMs" : 1800000
+  },
+  "version" : 1,
+  "createdAt" : 1779418206.128990000,
+  "updatedAt" : 1779418206.128993000
+} ]
