@@ -261,6 +261,7 @@ public class DataSourceService implements DataSourceManager {
         Map<String, String> params = cfg.getParams() != null ? cfg.getParams() : Map.of();
         Map<String, String> merged = new LinkedHashMap<>();
         merged.put("useSSL", "false");
+        merged.put("allowPublicKeyRetrieval", "true");
         merged.put("serverTimezone", "Asia/Shanghai");
         merged.putAll(params);
 
