@@ -24,11 +24,15 @@ tasks.jar {
     dependsOn(buildFrontend)
     archiveBaseName.set("plugin-todo")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from("src/main/resources")
+    from("src/main/resources") {
+        filesMatching("plugin.properties") {
+            filter { if (it.startsWith("plugin.version=")) "plugin.version=${project.version}" else it }
+        }
+    }
     manifest {
         attributes(
             "Plugin-Id"          to "todo",
-            "Plugin-Version"     to "1.0.0",
+            "Plugin-Version"     to project.version,
             "Plugin-Class"       to "com.toolbox.plugin.todo.TodoPlugin",
             "Plugin-Description" to "待办任务管理工具",
             "Plugin-Provider"    to "ToolBox Team"

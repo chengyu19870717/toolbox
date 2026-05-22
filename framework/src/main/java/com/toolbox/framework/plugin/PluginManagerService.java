@@ -19,6 +19,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,11 +68,11 @@ public class PluginManagerService {
     }
 
     /**
-     * 扫描插件目录，当同一 pluginId 存在多个 jar 时，只保留版本号最新的那个，删除旧版本。
-     * 版本号从文件名中按 -{version}.jar 格式解析，无法解析时按 lastModified 时间排序。
+     * 扫描插件目录，当同一基础名称存在多个 jar 时，保留最新修改时间的那个，删除其余旧版本。
+     * 用 lastModified 而非文件名排序，避免 "1.0.10" < "1.0.9" 的字符串比较陷阱。
      */
     private void deduplicatePlugins(Path pluginsDir) throws IOException {
-        Pattern versionPattern = Pattern.compile("^(.+?)-(\\d+\\.\\d+\\.\\d+(?:[._-]\\S+?)?)\\.jar$");
+        Pattern versionPattern = Pattern.compile("^(.+?)-(\\d+\\.\\d+\\.\\d+\\S*)\\.jar$");
         Map<String, List<Path>> byBaseName = new LinkedHashMap<>();
 
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(pluginsDir, "*.jar")) {
@@ -87,9 +88,12 @@ public class PluginManagerService {
             List<Path> jars = entry.getValue();
             if (jars.size() <= 1) continue;
 
-            // 按文件名排序（版本号字典序，对 semver 基本可靠）
-            jars.sort(Comparator.comparing(p -> p.getFileName().toString()));
-            List<Path> toDelete = jars.subList(0, jars.size() - 1);
+            // 按最后修改时间降序，保留最新的，删除其余
+            jars.sort(Comparator.comparingLong(p -> {
+                try { return Files.getLastModifiedTime(p).toMillis(); } catch (IOException e) { return 0L; }
+            }));
+            Collections.reverse(jars);
+            List<Path> toDelete = jars.subList(1, jars.size());
             for (Path old : toDelete) {
                 log.warn("检测到重复插件，删除旧版本: {}", old.getFileName());
                 Files.deleteIfExists(old);

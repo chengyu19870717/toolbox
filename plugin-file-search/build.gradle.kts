@@ -33,7 +33,7 @@ tasks.jar {
     manifest {
         attributes(
             "Plugin-Id"          to "file-search",
-            "Plugin-Version"     to "1.0.0",
+            "Plugin-Version"     to project.version,
             "Plugin-Class"       to "com.toolbox.plugin.filesearch.FileSearchPlugin",
             "Plugin-Description" to "文件检索工具",
             "Plugin-Provider"    to "ToolBox Team"

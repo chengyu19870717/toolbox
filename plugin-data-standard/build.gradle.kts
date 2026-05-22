@@ -35,7 +35,7 @@ tasks.jar {
     manifest {
         attributes(
             "Plugin-Id"          to "data-standard",
-            "Plugin-Version"     to "1.0.0",
+            "Plugin-Version"     to project.version,
             "Plugin-Class"       to "com.toolbox.plugin.datastandard.DataStandardPlugin",
             "Plugin-Description" to "数据标准管理工具",
             "Plugin-Provider"    to "ToolBox Team"
