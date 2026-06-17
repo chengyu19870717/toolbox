@@ -1,5 +1,7 @@
 package com.toolbox.plugin.flowparser;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toolbox.api.datasource.QueryRequest;
 import com.toolbox.api.datasource.QueryResult;
 import com.toolbox.api.exception.ValidationException;
@@ -9,6 +11,10 @@ import com.toolbox.api.plugin.handler.SyncHandler;
 import com.toolbox.plugin.flowparser.model.FlowData;
 import org.pf4j.Extension;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +24,7 @@ public class FlowParserExtension implements ToolExtension {
     private PluginContext ctx;
     private final FlowXmlParser    parser  = new FlowXmlParser();
     private final FlowCheckService checker = new FlowCheckService();
+    private final ObjectMapper     mapper  = new ObjectMapper();
 
     @Override public String getId()          { return "flow-parser-main"; }
     @Override public String getName()        { return "流程解析工具"; }
@@ -37,7 +44,9 @@ public class FlowParserExtension implements ToolExtension {
             case "parseXmlList" -> handleParseXmlList(params);
             case "parseSql"     -> handleParseSql(params);
             case "queryRawXml"  -> handleQueryRawXml(params);
-            case "checkFlow"    -> handleCheckFlow(params);
+            case "checkFlow"        -> handleCheckFlow(params);
+            case "checkAllParsed"   -> handleCheckAllParsed(params);
+            case "queryLogs"    -> handleQueryLogs(params);
             default -> throw new ValidationException("Unknown action: " + action);
         };
     }
@@ -46,9 +55,12 @@ public class FlowParserExtension implements ToolExtension {
 
     private Object handleParseXml(Map<String, Object> params) throws Exception {
         String xmlContent = requireString(params, "xmlContent");
-        List<FlowData> flows = parser.parse(xmlContent);
-        if (flows.isEmpty()) throw new ValidationException("未解析到有效的流程定义，请检查XML格式");
-        return Map.of("flows", flows);
+        FlowXmlParser.ParseResult result = parser.parseWithLog(xmlContent);
+        result.errors().forEach(e -> ctx.getLogger().warn("片段#{} 解析失败: {}", e.fragmentIndex(), e.reason()));
+        List<Map<String, Object>> parseErrors = result.errors().stream()
+            .map(e -> Map.<String, Object>of("fragment", e.fragmentIndex(), "error", e.reason(), "snippet", e.snippet()))
+            .toList();
+        return Map.of("flows", result.flows(), "parseErrors", parseErrors, "fragmentCount", result.fragmentCount());
     }
 
     @SuppressWarnings("unchecked")
@@ -176,19 +188,40 @@ public class FlowParserExtension implements ToolExtension {
         String xmlContent = requireString(params, "xmlContent");
         List<FlowData> flows = parser.parse(xmlContent);
         if (flows.isEmpty()) throw new ValidationException("未解析到有效的流程定义");
-        // 对每个流程分别检查，汇总结果
+        return buildCheckResult(flows);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object handleCheckAllParsed(Map<String, Object> params) throws Exception {
+        Object raw = params.get("flows");
+        if (raw == null) throw new ValidationException("flows 不能为空");
+        List<FlowData> flows = mapper.convertValue(raw, new TypeReference<List<FlowData>>() {});
+        if (flows.isEmpty()) throw new ValidationException("未找到有效的流程定义");
+        return buildCheckResult(flows);
+    }
+
+    private Map<String, Object> buildCheckResult(List<FlowData> flows) {
         var allIssues = new java.util.ArrayList<>();
         for (FlowData flow : flows) {
+            String fId   = flow.workflow != null && flow.workflow.flowId   != null ? flow.workflow.flowId   : "";
+            String fName = flow.workflow != null && flow.workflow.flowName != null ? flow.workflow.flowName : fId;
             var issues = checker.check(flow);
-            String flowName = flow.workflow != null
-                    ? (flow.workflow.flowName != null ? flow.workflow.flowName : flow.workflow.flowId)
-                    : "未知流程";
             for (var issue : issues) {
-                issue.message = flows.size() > 1 ? "[" + flowName + "] " + issue.message : issue.message;
+                issue.flowId   = fId;
+                issue.flowName = fName;
             }
             allIssues.addAll(issues);
         }
-        return Map.of("issues", allIssues, "total", allIssues.size());
+        return Map.of("issues", allIssues, "total", allIssues.size(), "flowCount", flows.size());
+    }
+
+    private Object handleQueryLogs(Map<String, Object> params) throws IOException {
+        int lines = params.containsKey("lines") ? Integer.parseInt(params.get("lines").toString()) : 200;
+        Path logFile = Path.of("logs", "app.log");
+        if (!Files.exists(logFile)) return Map.of("lines", List.of(), "file", logFile.toString());
+        List<String> all = Files.readAllLines(logFile, StandardCharsets.UTF_8);
+        int from = Math.max(0, all.size() - lines);
+        return Map.of("lines", all.subList(from, all.size()), "file", logFile.toString(), "total", all.size());
     }
 
     // ── utils ─────────────────────────────────────────────────────────────

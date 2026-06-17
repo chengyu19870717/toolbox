@@ -68,60 +68,6 @@
       </el-table>
     </div>
 
-    <!-- ══════════════════════════════════════════════════ 接口维护 ══════ -->
-    <div v-show="activeTab === 'interfaces'" class="ds-panel">
-      <div class="ds-panel-header">
-        <el-input v-model="ifaceSearch" placeholder="搜索接口..." clearable style="width:240px" />
-        <el-button type="primary" @click="openIfaceModal(null)">+ 新增接口</el-button>
-      </div>
-      <el-table :data="filteredIfaces" border stripe size="small" max-height="560">
-        <el-table-column prop="id" label="接口ID" width="160" />
-        <el-table-column prop="name" label="接口名称" width="180">
-          <template #default="{ row }"><strong>{{ row.name }}</strong></template>
-        </el-table-column>
-        <el-table-column prop="description" label="接口描述" min-width="180" show-overflow-tooltip />
-        <el-table-column label="输入字段数" width="90" align="center">
-          <template #default="{ row }">{{ parseJSON(row.input_json).length }}</template>
-        </el-table-column>
-        <el-table-column label="输出字段数" width="90" align="center">
-          <template #default="{ row }">{{ parseJSON(row.output_json).length }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="openIfaceModal(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="deleteIface(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════ 规则维护 ════════ -->
-    <div v-show="activeTab === 'rules'" class="ds-panel">
-      <div class="ds-panel-header">
-        <el-input v-model="ruleSearch" placeholder="搜索规则..." clearable style="width:240px" />
-        <el-button type="primary" @click="openRuleModal(null)">+ 新增规则</el-button>
-      </div>
-      <el-table :data="filteredRules" border stripe size="small" max-height="560">
-        <el-table-column prop="id" label="规则ID" width="160" />
-        <el-table-column prop="name" label="规则名称" width="180">
-          <template #default="{ row }"><strong>{{ row.name }}</strong></template>
-        </el-table-column>
-        <el-table-column prop="description" label="规则描述" min-width="180" show-overflow-tooltip />
-        <el-table-column label="输入字段数" width="90" align="center">
-          <template #default="{ row }">{{ parseJSON(row.input_json).length }}</template>
-        </el-table-column>
-        <el-table-column label="输出字段数" width="90" align="center">
-          <template #default="{ row }">{{ parseJSON(row.output_json).length }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" @click="openRuleModal(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="deleteRule(row.id)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-
     <!-- ══════════════════════════════════════════════ 弹窗：字根编辑 ═════ -->
     <el-dialog v-model="rootModalVisible" :title="rootForm.id && !rootIsNew ? '编辑字根' : '新增字根'"
                width="680px" :close-on-click-modal="false" destroy-on-close>
@@ -258,73 +204,6 @@
       </template>
     </el-dialog>
 
-    <!-- ══════════════════════════════════════════════ 弹窗：接口编辑 ═════ -->
-    <el-dialog v-model="ifaceModalVisible" :title="ifaceIsNew ? '新增接口' : '编辑接口'"
-               width="900px" :close-on-click-modal="false" destroy-on-close>
-      <el-form :model="ifaceForm" label-width="90px" size="small">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="接口ID *">
-              <el-input v-model="ifaceForm.id" :disabled="!ifaceIsNew" placeholder="如 IFACE_001" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="接口名称 *">
-              <el-input v-model="ifaceForm.name" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="接口描述">
-              <el-input v-model="ifaceForm.description" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <!-- 拖拽布局 -->
-      <FieldDragLayout
-        :all-fields="fields"
-        v-model:input-items="ifaceInputItems"
-        v-model:output-items="ifaceOutputItems"
-      />
-      <template #footer>
-        <el-button @click="ifaceModalVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveIface" :loading="saving">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- ══════════════════════════════════════════════ 弹窗：规则编辑 ═════ -->
-    <el-dialog v-model="ruleModalVisible" :title="ruleIsNew ? '新增规则' : '编辑规则'"
-               width="900px" :close-on-click-modal="false" destroy-on-close>
-      <el-form :model="ruleForm" label-width="90px" size="small">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="规则ID *">
-              <el-input v-model="ruleForm.id" :disabled="!ruleIsNew" placeholder="如 RULE_001" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="规则名称 *">
-              <el-input v-model="ruleForm.name" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="规则描述">
-              <el-input v-model="ruleForm.description" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-      <FieldDragLayout
-        :all-fields="fields"
-        v-model:input-items="ruleInputItems"
-        v-model:output-items="ruleOutputItems"
-      />
-      <template #footer>
-        <el-button @click="ruleModalVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveRule" :loading="saving">保存</el-button>
-      </template>
-    </el-dialog>
-
     <!-- ══════════════════════════════════════════════ 弹窗：关联图谱 ═════ -->
     <el-dialog v-model="graphModalVisible" :title="graphTitle" width="760px" destroy-on-close>
       <div v-if="graphData">
@@ -335,24 +214,6 @@
             <el-table-column prop="name_en" label="英文名" width="140" />
             <el-table-column prop="name_cn" label="中文名" />
           </el-table>
-        </div>
-        <div class="graph-section">
-          <div class="graph-section-title">🔗 被接口引用（{{ graphData.usedByIfaces?.length ?? 0 }}）</div>
-          <el-table v-if="graphData.usedByIfaces?.length" :data="graphData.usedByIfaces" size="small" border>
-            <el-table-column prop="id" label="接口ID" width="160" />
-            <el-table-column prop="name" label="接口名称" width="160" />
-            <el-table-column prop="description" label="描述" />
-          </el-table>
-          <div v-else class="graph-empty">无接口引用</div>
-        </div>
-        <div class="graph-section">
-          <div class="graph-section-title">⚙️ 被规则引用（{{ graphData.usedByRules?.length ?? 0 }}）</div>
-          <el-table v-if="graphData.usedByRules?.length" :data="graphData.usedByRules" size="small" border>
-            <el-table-column prop="id" label="规则ID" width="160" />
-            <el-table-column prop="name" label="规则名称" width="160" />
-            <el-table-column prop="description" label="描述" />
-          </el-table>
-          <div v-else class="graph-empty">无规则引用</div>
         </div>
       </div>
       <template #footer>
@@ -376,43 +237,32 @@ const props = defineProps<{ api: ToolboxAPI; toolId: string }>()
 
 // ── 顶层 Tab ─────────────────────────────────────────────────────────────────
 const tabs = [
-  { key: 'roots',      label: '📐 字根维护' },
-  { key: 'fields',     label: '📋 标准字段维护' },
-  { key: 'interfaces', label: '🔗 接口维护' },
-  { key: 'rules',      label: '⚙️ 规则维护' },
+  { key: 'roots',  label: '📐 字根维护' },
+  { key: 'fields', label: '📋 标准字段维护' },
 ]
 const activeTab = ref('roots')
 
 // ── 数据 ──────────────────────────────────────────────────────────────────────
 const roots  = ref<any[]>([])
 const fields = ref<any[]>([])
-const ifaces = ref<any[]>([])
-const rules  = ref<any[]>([])
 const saving = ref(false)
 
 async function loadAll() {
-  const [r, f, i, ru] = await Promise.all([
+  const [r, f] = await Promise.all([
     props.api.plugin.callSync('listRoots', {}),
     props.api.plugin.callSync('listFields', {}),
-    props.api.plugin.callSync('listInterfaces', {}),
-    props.api.plugin.callSync('listRules', {}),
   ])
   roots.value  = r.roots  ?? []
   fields.value = f.fields ?? []
-  ifaces.value = i.interfaces ?? []
-  rules.value  = ru.rules ?? []
 }
 
 onMounted(loadAll)
 
 // ── 搜索过滤 ──────────────────────────────────────────────────────────────────
 const rootSearch  = ref(''); const fieldSearch = ref('')
-const ifaceSearch = ref(''); const ruleSearch  = ref('')
 
 const filteredRoots  = computed(() => filter(roots.value,  rootSearch.value,  ['id','name','meaning']))
 const filteredFields = computed(() => filter(fields.value, fieldSearch.value, ['id','name_en','name_cn']))
-const filteredIfaces = computed(() => filter(ifaces.value, ifaceSearch.value, ['id','name','description']))
-const filteredRules  = computed(() => filter(rules.value,  ruleSearch.value,  ['id','name','description']))
 
 function filter(list: any[], q: string, keys: string[]) {
   if (!q) return list
@@ -550,98 +400,6 @@ async function deleteField(id: string) {
   ElMessage.success('已删除')
 }
 
-// ══════════════════════════════════════════════════════════════ 接口 ══════════
-const ifaceModalVisible = ref(false)
-const ifaceIsNew        = ref(true)
-const ifaceForm         = ref<any>({})
-const ifaceInputItems   = ref<any[]>([])
-const ifaceOutputItems  = ref<any[]>([])
-
-function openIfaceModal(row: any) {
-  ifaceIsNew.value = !row
-  if (row) {
-    ifaceForm.value = { ...row }
-    ifaceInputItems.value  = parseJSON(row.input_json)
-    ifaceOutputItems.value = parseJSON(row.output_json)
-  } else {
-    ifaceForm.value = { id: genId('IFACE'), name: '', description: '' }
-    ifaceInputItems.value  = []
-    ifaceOutputItems.value = []
-  }
-  ifaceModalVisible.value = true
-}
-
-async function saveIface() {
-  if (!ifaceForm.value.id?.trim() || !ifaceForm.value.name?.trim()) {
-    ElMessage.warning('接口ID和接口名称不能为空'); return
-  }
-  saving.value = true
-  try {
-    await props.api.plugin.callSync('saveInterface', {
-      ...ifaceForm.value,
-      input_json:  JSON.stringify(ifaceInputItems.value),
-      output_json: JSON.stringify(ifaceOutputItems.value),
-      _isNew: ifaceIsNew.value,
-    })
-    ifaceModalVisible.value = false
-    await loadAll()
-    ElMessage.success('保存成功')
-  } finally { saving.value = false }
-}
-
-async function deleteIface(id: string) {
-  await ElMessageBox.confirm('确认删除接口 ' + id + '？', '删除确认', { type: 'warning' })
-  await props.api.plugin.callSync('deleteInterface', { id })
-  await loadAll()
-  ElMessage.success('已删除')
-}
-
-// ══════════════════════════════════════════════════════════════ 规则 ══════════
-const ruleModalVisible = ref(false)
-const ruleIsNew        = ref(true)
-const ruleForm         = ref<any>({})
-const ruleInputItems   = ref<any[]>([])
-const ruleOutputItems  = ref<any[]>([])
-
-function openRuleModal(row: any) {
-  ruleIsNew.value = !row
-  if (row) {
-    ruleForm.value = { ...row }
-    ruleInputItems.value  = parseJSON(row.input_json)
-    ruleOutputItems.value = parseJSON(row.output_json)
-  } else {
-    ruleForm.value = { id: genId('RULE'), name: '', description: '' }
-    ruleInputItems.value  = []
-    ruleOutputItems.value = []
-  }
-  ruleModalVisible.value = true
-}
-
-async function saveRule() {
-  if (!ruleForm.value.id?.trim() || !ruleForm.value.name?.trim()) {
-    ElMessage.warning('规则ID和规则名称不能为空'); return
-  }
-  saving.value = true
-  try {
-    await props.api.plugin.callSync('saveRule', {
-      ...ruleForm.value,
-      input_json:  JSON.stringify(ruleInputItems.value),
-      output_json: JSON.stringify(ruleOutputItems.value),
-      _isNew: ruleIsNew.value,
-    })
-    ruleModalVisible.value = false
-    await loadAll()
-    ElMessage.success('保存成功')
-  } finally { saving.value = false }
-}
-
-async function deleteRule(id: string) {
-  await ElMessageBox.confirm('确认删除规则 ' + id + '？', '删除确认', { type: 'warning' })
-  await props.api.plugin.callSync('deleteRule', { id })
-  await loadAll()
-  ElMessage.success('已删除')
-}
-
 // ══════════════════════════════════════════════════════════════ 关联图谱 ══════
 const graphModalVisible = ref(false)
 const graphTitle        = ref('')
@@ -651,14 +409,9 @@ function openRootGraph() {
   if (!selectedRootId.value) { ElMessage.warning('请先选中一条字根记录'); return }
   const root = roots.value.find((r: any) => r.id === selectedRootId.value)
   if (!root) return
-  const usedFields   = fields.value.filter((f: any) => f.root_id === root.id)
-  const fieldIds     = new Set(usedFields.map((f: any) => f.id))
-  const usedByIfaces = ifaces.value.filter((ifc: any) =>
-    [...parseJSON(ifc.input_json), ...parseJSON(ifc.output_json)].some((x: any) => fieldIds.has(x.field_id)))
-  const usedByRules  = rules.value.filter((ru: any) =>
-    [...parseJSON(ru.input_json), ...parseJSON(ru.output_json)].some((x: any) => fieldIds.has(x.field_id)))
+  const usedFields = fields.value.filter((f: any) => f.root_id === root.id)
   graphTitle.value = `字根「${root.name}」关联图谱`
-  graphData.value  = { type:'字根', name: root.name, usedFields, usedByIfaces, usedByRules }
+  graphData.value  = { type:'字根', name: root.name, usedFields }
   graphModalVisible.value = true
 }
 
@@ -666,12 +419,8 @@ function openFieldGraph() {
   if (!selectedFieldId.value) { ElMessage.warning('请先选中一条字段记录'); return }
   const field = fields.value.find((f: any) => f.id === selectedFieldId.value)
   if (!field) return
-  const usedByIfaces = ifaces.value.filter((ifc: any) =>
-    [...parseJSON(ifc.input_json), ...parseJSON(ifc.output_json)].some((x: any) => x.field_id === field.id))
-  const usedByRules  = rules.value.filter((ru: any) =>
-    [...parseJSON(ru.input_json), ...parseJSON(ru.output_json)].some((x: any) => x.field_id === field.id))
   graphTitle.value = `字段「${field.name_en}」关联图谱`
-  graphData.value  = { type:'字段', name: field.name_en, usedFields: [], usedByIfaces, usedByRules }
+  graphData.value  = { type:'字段', name: field.name_en, usedFields: [] }
   graphModalVisible.value = true
 }
 
@@ -683,18 +432,6 @@ function exportGraphExcel() {
       XLSX.utils.json_to_sheet(graphData.value.usedFields.map((f: any) =>
         ({ '字段ID': f.id, '英文名': f.name_en, '中文名': f.name_cn ?? '' }))),
       '关联字段')
-  }
-  if (graphData.value.usedByIfaces?.length) {
-    XLSX.utils.book_append_sheet(wb,
-      XLSX.utils.json_to_sheet(graphData.value.usedByIfaces.map((i: any) =>
-        ({ '接口ID': i.id, '接口名称': i.name, '描述': i.description ?? '' }))),
-      '被接口引用')
-  }
-  if (graphData.value.usedByRules?.length) {
-    XLSX.utils.book_append_sheet(wb,
-      XLSX.utils.json_to_sheet(graphData.value.usedByRules.map((r: any) =>
-        ({ '规则ID': r.id, '规则名称': r.name, '描述': r.description ?? '' }))),
-      '被规则引用')
   }
   if (wb.SheetNames.length === 0) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ '结果': '暂无关联' }]), '关联图谱')

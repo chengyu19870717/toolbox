@@ -6,6 +6,7 @@ dependencies {
     compileOnly(project(":api"))
     compileOnly("org.pf4j:pf4j:3.10.0")
     compileOnly("org.slf4j:slf4j-api:2.0.13")
+    compileOnly("com.fasterxml.jackson.core:jackson-databind:2.17.2")
 }
 
 val buildFrontend by tasks.registering(Exec::class) {

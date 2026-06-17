@@ -10,6 +10,10 @@ public class CheckIssue {
     /** 关联节点名称 */
     public String nodeName;
     public String message;
+    /** 所属流程编号 */
+    public String flowId;
+    /** 所属流程名称 */
+    public String flowName;
 
     public CheckIssue(String level, String ruleCode, String ruleName,
                       String nodeId, String nodeName, String message) {

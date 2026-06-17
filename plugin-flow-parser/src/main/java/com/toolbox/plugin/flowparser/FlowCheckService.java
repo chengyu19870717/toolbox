@@ -66,16 +66,26 @@ public class FlowCheckService {
         }
     }
 
-    // ── 规则：无人跳过为“是”时，只允许开始/结束节点或流程发起者节点 ────────────────
+    // ── 规则：过程节点（非首节点、非终节点）必须将无人员跳过配置为"是" ──────────
     private void checkNoUserJump(FlowData flow, List<CheckIssue> issues) {
+        // 首节点：路由线来源为开始节点(S)的目标节点
+        Set<String> startIds = flow.nodes.stream()
+                .filter(n -> "S".equals(n.nodeType)).map(n -> n.nid).collect(Collectors.toSet());
+        Set<String> firstNodeIds = flow.lines.stream()
+                .filter(l -> startIds.contains(l.source)).map(l -> l.target).collect(Collectors.toSet());
+        // 终节点：路由线目标为结束节点(E)的来源节点
+        Set<String> endIds = flow.nodes.stream()
+                .filter(n -> "E".equals(n.nodeType)).map(n -> n.nid).collect(Collectors.toSet());
+        Set<String> terminalNodeIds = flow.lines.stream()
+                .filter(l -> endIds.contains(l.target)).map(l -> l.source).collect(Collectors.toSet());
+
         for (NodeInfo node : flow.nodes) {
-            if (!"1".equals(node.noUserJump)) continue;
-            boolean isStartOrEnd  = "S".equals(node.nodeType) || "E".equals(node.nodeType);
-            boolean isInitiator   = node.convertLabel != null && node.convertLabel.contains("流程发起者");
-            if (!isStartOrEnd && !isInitiator) {
+            if (!isProcessNode(node)) continue;
+            if (firstNodeIds.contains(node.nid) || terminalNodeIds.contains(node.nid)) continue;
+            if (!"1".equals(node.noUserJump)) {
                 issues.add(new CheckIssue("ERROR", "R006", "无人跳过配置检查",
                         node.nid, node.label,
-                        "节点「" + node.label + "」的无人跳过配置不合规，仅开始/结束节点或流程发起者节点允许配置为“是”"));
+                        "节点「" + node.label + "」未将无人员跳过配置为\"是\"（该节点为中间过程节点，非首节点/终节点）"));
             }
         }
     }
