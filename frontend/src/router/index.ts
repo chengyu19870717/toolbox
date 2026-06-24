@@ -13,10 +13,10 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/tools' },
         { path: 'tools', component: () => import('@/views/main/ToolsView.vue') },
-        { path: 'tools/:toolId', component: () => import('@/views/main/ToolView.vue') },
         { path: 'datasources', component: () => import('@/views/datasource/DataSourceView.vue') },
         { path: 'tasks', component: () => import('@/views/task/TaskListView.vue') },
         { path: 'users', component: () => import('@/views/user/UserView.vue'), meta: { requiresAdmin: true } },
+        { path: 'sys-dashboard', component: () => import('@/views/sys-dashboard/SysDashboardView.vue') },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
