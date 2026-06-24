@@ -41,10 +41,6 @@
           <el-icon><List /></el-icon>
           <span>任务中心</span>
         </el-menu-item>
-        <el-menu-item index="/sys-dashboard" @click="navigate('/sys-dashboard')">
-          <el-icon><DataBoard /></el-icon>
-          <span>系统管理看板</span>
-        </el-menu-item>
         <el-menu-item v-if="auth.role === 'ADMIN'" index="/users" @click="navigate('/users')">
           <el-icon><User /></el-icon>
           <span>用户管理</span>
@@ -110,6 +106,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTabStore } from '@/stores/tabs'
 import ToolTabPanel from './ToolTabPanel.vue'
 import http from '@/api/http'
+import { BUILTIN_TOOLS } from '@/builtinTools'
 
 const route = useRoute()
 const router = useRouter()
@@ -124,6 +121,7 @@ const iconMap: Record<string, string> = {
   'mdi-sitemap': 'Share',
   'mdi-checkbox-marked-outline': 'Finished',
   'mdi-folder-search': 'FolderOpened',
+  'mdi-monitor-dashboard': 'DataBoard',
 }
 
 // 侧边栏高亮：tab 激活时高亮对应工具项，否则高亮当前路由
@@ -159,8 +157,9 @@ function connectNotifications() {
 onMounted(async () => {
   connectNotifications()
   try {
-    tools.value = await http.get('/plugins')
-  } catch { /* 插件列表加载失败时侧边栏不展示工具子项 */ }
+    const pluginTools: Tool[] = await http.get('/plugins')
+    tools.value = [...BUILTIN_TOOLS, ...pluginTools]
+  } catch { tools.value = [...BUILTIN_TOOLS] }
 })
 onUnmounted(() => notificationSse?.close())
 

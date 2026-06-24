@@ -16,7 +16,6 @@ const router = createRouter({
         { path: 'datasources', component: () => import('@/views/datasource/DataSourceView.vue') },
         { path: 'tasks', component: () => import('@/views/task/TaskListView.vue') },
         { path: 'users', component: () => import('@/views/user/UserView.vue'), meta: { requiresAdmin: true } },
-        { path: 'sys-dashboard', component: () => import('@/views/sys-dashboard/SysDashboardView.vue') },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

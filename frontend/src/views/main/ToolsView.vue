@@ -5,7 +5,7 @@
       <el-empty v-if="!tools.length" description="暂无可用工具，请在 plugins/ 目录放入插件 jar 并重启" />
       <div v-else class="tool-grid">
         <el-card v-for="tool in tools" :key="tool.id" class="tool-card" shadow="hover"
-                 @click="router.push(`/tools/${tool.id}`)">
+                 @click="tabStore.open(tool.id, tool.name)">
           <div class="tool-icon">
             <el-icon size="32"><component :is="iconMap[tool.icon] ?? 'Tools'" /></el-icon>
           </div>
@@ -20,10 +20,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import http from '@/api/http'
+import { useTabStore } from '@/stores/tabs'
+import { BUILTIN_TOOLS } from '@/builtinTools'
 
-const router = useRouter()
+const tabStore = useTabStore()
 
 interface Tool { id: string; name: string; category: string; description: string; icon: string }
 
@@ -32,10 +33,12 @@ const iconMap: Record<string, string> = {
   'mdi-database': 'DataBase',
   'mdi-file-excel': 'Document',
   'mdi-sitemap': 'Share',
+  'mdi-monitor-dashboard': 'DataBoard',
 }
 
 onMounted(async () => {
-  tools.value = await http.get('/plugins')
+  const pluginTools: Tool[] = await http.get('/plugins')
+  tools.value = [...BUILTIN_TOOLS, ...pluginTools]
 })
 </script>
 
