@@ -18,7 +18,53 @@ export const FILE_DEFS: DashboardFileKey[] = [
 
 export type DataKey = DashboardFileKey['key']
 
+function parseCsvOrTxt(text: string): Record<string, unknown>[] {
+  const lines = text.split(/\r?\n/).filter(l => l.trim())
+  if (lines.length < 2) return []
+  // 自动检测分隔符：制表符优先，否则逗号
+  const sep = lines[0].includes('\t') ? '\t' : ','
+  const headers = splitLine(lines[0], sep)
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line, sep)
+    return Object.fromEntries(headers.map((h, i) => [h, vals[i] ?? '']))
+  })
+}
+
+// 处理字段内含分隔符的 CSV 引号转义
+function splitLine(line: string, sep: string): string[] {
+  if (sep !== ',') return line.split(sep).map(s => s.trim())
+  const result: string[] = []
+  let cur = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+      else inQuote = !inQuote
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur.trim()); cur = ''
+    } else {
+      cur += ch
+    }
+  }
+  result.push(cur.trim())
+  return result
+}
+
 function parseFile(file: File): Promise<Record<string, unknown>[]> {
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext === 'csv' || ext === 'txt') {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try { resolve(parseCsvOrTxt(e.target!.result as string)) }
+        catch (err) { reject(err) }
+      }
+      reader.onerror = reject
+      reader.readAsText(file, 'UTF-8')
+    })
+  }
+  // xlsx / xls
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -27,9 +73,7 @@ function parseFile(file: File): Promise<Record<string, unknown>[]> {
         const wb = XLSX.read(data, { type: 'array' })
         const sheet = wb.Sheets[wb.SheetNames[0]]
         resolve(XLSX.utils.sheet_to_json(sheet, { defval: '' }))
-      } catch (err) {
-        reject(err)
-      }
+      } catch (err) { reject(err) }
     }
     reader.onerror = reject
     reader.readAsArrayBuffer(file)

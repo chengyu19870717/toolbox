@@ -21,11 +21,11 @@
             <div v-if="store.fileNames[def.key]" class="file-name">
               {{ store.fileNames[def.key] }}
             </div>
-            <div v-else class="file-hint">支持 .xlsx / .xls / .csv</div>
+            <div v-else class="file-hint">支持 .xlsx / .xls / .csv / .txt</div>
             <div style="margin-top:8px; display:flex; gap:6px; justify-content:center;">
               <el-upload
                 :show-file-list="false"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx,.xls,.csv,.txt"
                 :before-upload="(file: any) => handleUpload(def.key, file)"
                 action="#"
                 :auto-upload="false"
