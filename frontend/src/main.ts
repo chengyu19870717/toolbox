@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import 'element-plus/dist/index.css'
+import './styles/global.css'   // 需放在 element-plus 之后，确保重置不被覆盖
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import App from './App.vue'
