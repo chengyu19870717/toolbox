@@ -115,6 +115,10 @@ public class DatabaseManager {
         } catch (SQLException e) { throw new ToolBoxException("删除字根失败", e); }
     }
 
+    public int deleteRoots(List<String> ids) {
+        return deleteByIds("data_roots", ids, "批量删除字根失败");
+    }
+
     // ══════════════════════════════════════════════════════════════ 字段 ══════
     public List<Map<String, Object>> listFields() {
         try (Connection conn = connect();
@@ -169,6 +173,39 @@ public class DatabaseManager {
             ps.setString(1, id);
             ps.executeUpdate();
         } catch (SQLException e) { throw new ToolBoxException("删除字段失败", e); }
+    }
+
+    public int deleteFields(List<String> ids) {
+        return deleteByIds("data_fields", ids, "批量删除字段失败");
+    }
+
+    /**
+     * 按主键批量删除。整批放在一个事务里：要么全删掉，要么一条都不动，
+     * 避免用户勾了 50 条、删到第 30 条报错、剩下的状态说不清。
+     *
+     * @param table 表名，仅由本类内部传入固定字面量，不接受外部输入
+     */
+    private int deleteByIds(String table, List<String> ids, String errMsg) {
+        if (ids == null || ids.isEmpty()) throw new ValidationException("请先选择要删除的记录");
+        try (Connection conn = connect()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM " + table + " WHERE id=?")) {
+                for (String id : ids) {
+                    if (id == null || id.isBlank()) continue;
+                    ps.setString(1, id.trim());
+                    ps.addBatch();
+                }
+                int[] rows = ps.executeBatch();
+                conn.commit();
+                int n = 0;
+                for (int r : rows) if (r > 0) n += r;
+                log.info("批量删除 {}：请求 {} 条，实际删除 {} 条", table, ids.size(), n);
+                return n;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) { throw new ToolBoxException(errMsg, e); }
     }
 
     // ══════════════════════════════════════════════════════════════ 接口 ══════

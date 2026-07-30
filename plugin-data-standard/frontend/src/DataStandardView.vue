@@ -15,10 +15,17 @@
         <el-button @click="exportRoots"><el-icon><Download /></el-icon> 导出CSV</el-button>
         <el-button @click="triggerImport('root')"><el-icon><Upload /></el-icon> 导入CSV</el-button>
         <el-button @click="openRootGraph" :disabled="!selectedRootId">📊 关联图谱</el-button>
+        <el-button type="danger" plain :disabled="!checkedRoots.length"
+                   @click="deleteCheckedRoots">
+          批量删除{{ checkedRoots.length ? ` (${checkedRoots.length})` : '' }}
+        </el-button>
         <el-button type="primary" @click="openRootModal(null)">+ 新增字根</el-button>
       </div>
-      <el-table :data="filteredRoots" border stripe size="small" max-height="560"
-                highlight-current-row @current-change="(r:any) => selectedRootId = r?.id ?? null">
+      <el-table ref="rootTableRef" :data="filteredRoots" border stripe size="small" max-height="560"
+                row-key="id" highlight-current-row
+                @current-change="(r:any) => selectedRootId = r?.id ?? null"
+                @selection-change="(rows:any[]) => checkedRoots = rows">
+        <el-table-column type="selection" width="42" reserve-selection />
         <el-table-column prop="id" label="字根ID" width="140" />
         <el-table-column prop="name" label="字根名" width="140">
           <template #default="{ row }"><strong>{{ row.name }}</strong></template>
@@ -47,10 +54,17 @@
         <el-button @click="exportFields"><el-icon><Download /></el-icon> 导出CSV</el-button>
         <el-button @click="triggerImport('field')"><el-icon><Upload /></el-icon> 导入CSV</el-button>
         <el-button @click="openFieldGraph" :disabled="!selectedFieldId">📊 关联图谱</el-button>
+        <el-button type="danger" plain :disabled="!checkedFields.length"
+                   @click="deleteCheckedFields">
+          批量删除{{ checkedFields.length ? ` (${checkedFields.length})` : '' }}
+        </el-button>
         <el-button type="primary" @click="openFieldModal(null)">+ 新增字段</el-button>
       </div>
-      <el-table :data="filteredFields" border stripe size="small" max-height="560"
-                highlight-current-row @current-change="(r:any) => selectedFieldId = r?.id ?? null">
+      <el-table ref="fieldTableRef" :data="filteredFields" border stripe size="small" max-height="560"
+                row-key="id" highlight-current-row
+                @current-change="(r:any) => selectedFieldId = r?.id ?? null"
+                @selection-change="(rows:any[]) => checkedFields = rows">
+        <el-table-column type="selection" width="42" reserve-selection />
         <el-table-column prop="id" label="字段ID" width="140" />
         <el-table-column prop="name_en" label="字段英文名" width="160">
           <template #default="{ row }"><strong>{{ row.name_en }}</strong></template>
@@ -247,6 +261,27 @@ const roots  = ref<any[]>([])
 const fields = ref<any[]>([])
 const saving = ref(false)
 
+// ── 多选批量删除 ──────────────────────────────────────────────────────────────
+// reserve-selection + row-key：搜索过滤时勾选不丢失（勾了一批、改关键词再勾一批仍累计）
+const rootTableRef  = ref<any>(null)
+const fieldTableRef = ref<any>(null)
+const checkedRoots  = ref<any[]>([])
+const checkedFields = ref<any[]>([])
+
+/** 删除后必须显式清空：reserve-selection 会保留已被删掉的行，否则计数一直不归零 */
+function clearChecked() {
+  rootTableRef.value?.clearSelection()
+  fieldTableRef.value?.clearSelection()
+  checkedRoots.value = []
+  checkedFields.value = []
+}
+
+/** 确认框里列出前几条，让用户核对删的是不是自己选的那批 */
+function summarize(rows: any[], nameKey: string, max = 5) {
+  const names = rows.slice(0, max).map(r => r[nameKey] || r.id)
+  return names.join('、') + (rows.length > max ? ` 等 ${rows.length} 条` : '')
+}
+
 async function loadAll() {
   const [r, f] = await Promise.all([
     props.api.plugin.callSync('listRoots', {}),
@@ -317,8 +352,26 @@ async function deleteRoot(id: string) {
   await ElMessageBox.confirm('确认删除字根 ' + id + '？', '删除确认', { type: 'warning' })
   await props.api.plugin.callSync('deleteRoot', { id })
   if (selectedRootId.value === id) selectedRootId.value = null
+  clearChecked()
   await loadAll()
   ElMessage.success('已删除')
+}
+
+async function deleteCheckedRoots() {
+  const rows = checkedRoots.value
+  if (!rows.length) { ElMessage.warning('请先勾选要删除的字根'); return }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${rows.length} 个字根？\n${summarize(rows, 'name')}\n此操作不可撤销。`,
+      '批量删除确认',
+      { type: 'warning', confirmButtonText: `删除 ${rows.length} 条`, cancelButtonText: '取消' })
+  } catch { return }   // 用户取消，静默返回
+  const ids = rows.map((r: any) => r.id)
+  const res = await props.api.plugin.callSync('deleteRoots', { ids })
+  if (ids.includes(selectedRootId.value)) selectedRootId.value = null
+  clearChecked()
+  await loadAll()
+  ElMessage.success(`已删除 ${res.deleted} 个字根`)
 }
 
 // ══════════════════════════════════════════════════════════════ 字段 ══════════
@@ -396,8 +449,26 @@ async function deleteField(id: string) {
   await ElMessageBox.confirm('确认删除字段 ' + id + '？', '删除确认', { type: 'warning' })
   await props.api.plugin.callSync('deleteField', { id })
   if (selectedFieldId.value === id) selectedFieldId.value = null
+  clearChecked()
   await loadAll()
   ElMessage.success('已删除')
+}
+
+async function deleteCheckedFields() {
+  const rows = checkedFields.value
+  if (!rows.length) { ElMessage.warning('请先勾选要删除的字段'); return }
+  try {
+    await ElMessageBox.confirm(
+      `确认删除选中的 ${rows.length} 个字段？\n${summarize(rows, 'name_cn')}\n此操作不可撤销。`,
+      '批量删除确认',
+      { type: 'warning', confirmButtonText: `删除 ${rows.length} 条`, cancelButtonText: '取消' })
+  } catch { return }
+  const ids = rows.map((r: any) => r.id)
+  const res = await props.api.plugin.callSync('deleteFields', { ids })
+  if (ids.includes(selectedFieldId.value)) selectedFieldId.value = null
+  clearChecked()
+  await loadAll()
+  ElMessage.success(`已删除 ${res.deleted} 个字段`)
 }
 
 // ══════════════════════════════════════════════════════════════ 关联图谱 ══════
