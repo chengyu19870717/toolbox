@@ -193,7 +193,7 @@
         <el-checkbox v-model="sqlOverwrite">覆盖同名表（取消勾选则跳过已存在的表）</el-checkbox>
       </div>
       <el-input v-model="sqlText" type="textarea" :rows="16" spellcheck="false"
-                placeholder="粘贴 CREATE TABLE 语句，或选择 .sql 文件" />
+                placeholder="粘贴 CREATE TABLE 语句，或选择 .sql 文件（RTF 富文本会自动转换）" />
       <template #footer>
         <el-button @click="sqlModalVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="importSql">开始解析导入</el-button>
@@ -476,6 +476,7 @@ async function importSql() {
     sqlModalVisible.value = false
     sqlText.value = ''
     ElMessage.success(
+      (res.fromRtf ? '已识别为 RTF 富文本并自动转换。' : '') +
       `导入完成：新增 ${res.created} 张表，覆盖 ${res.updated} 张，跳过 ${res.skipped} 张，` +
       `共 ${res.columns} 个字段、${res.relations} 条外键关联`)
     await loadTables(false)

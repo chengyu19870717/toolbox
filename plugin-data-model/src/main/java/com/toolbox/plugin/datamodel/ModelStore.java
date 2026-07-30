@@ -294,9 +294,18 @@ public class ModelStore {
      *
      * @param overwrite true=同名表先清空字段再重建；false=同名表整表跳过
      */
-    public Map<String, Object> importSql(String sql, boolean overwrite) {
+    public Map<String, Object> importSql(String rawSql, boolean overwrite) {
+        // .sql 文件常常其实是 RTF（从聊天工具/邮件另存的），先识别并转成纯文本
+        boolean fromRtf = RtfTextExtractor.isRtf(rawSql);
+        String sql = fromRtf ? RtfTextExtractor.toPlainText(rawSql) : rawSql;
+        if (fromRtf) log.info("检测到 RTF 富文本格式，已自动转换为纯文本后解析");
+
         List<SqlSchemaParser.Table> parsed = SqlSchemaParser.parse(sql);
-        if (parsed.isEmpty()) throw new ValidationException("未在 SQL 中解析到任何 CREATE TABLE 语句");
+        if (parsed.isEmpty()) {
+            throw new ValidationException(fromRtf
+                    ? "内容已识别为 RTF 富文本并完成转换，但其中没有找到 CREATE TABLE 语句"
+                    : "未在 SQL 中解析到任何 CREATE TABLE 语句");
+        }
 
         int created = 0, updated = 0, skipped = 0, columns = 0, relations = 0;
         List<String> names = new ArrayList<>();
@@ -380,7 +389,8 @@ public class ModelStore {
 
         log.info("SQL 导入完成：新增 {} 张表，覆盖 {} 张，跳过 {} 张，共 {} 个字段", created, updated, skipped, columns);
         return Map.of("created", created, "updated", updated, "skipped", skipped,
-                      "columns", columns, "relations", relations, "tables", names);
+                      "columns", columns, "relations", relations, "tables", names,
+                      "fromRtf", fromRtf);
     }
 
     /**

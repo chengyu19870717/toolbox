@@ -1,4 +1,4 @@
-import { defineComponent as Cl, ref as m, computed as ol, onMounted as Nl, resolveComponent as y, resolveDirective as Ql, openBlock as v, createElementBlock as k, createElementVNode as r, createVNode as a, withCtx as o, createTextVNode as n, Fragment as S, renderList as T, normalizeClass as gl, toDisplayString as _, createCommentVNode as kl, withDirectives as H, createBlock as L, vShow as wl, h as Al } from "vue";
+import { defineComponent as Cl, ref as m, computed as ol, onMounted as Nl, resolveComponent as y, resolveDirective as Ql, openBlock as v, createElementBlock as k, createElementVNode as r, createVNode as a, withCtx as o, createTextVNode as n, Fragment as S, renderList as z, normalizeClass as gl, toDisplayString as _, createCommentVNode as kl, withDirectives as H, createBlock as R, vShow as wl, h as Al } from "vue";
 import { ElMessage as b, ElMessageBox as J } from "element-plus";
 const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-side-head" }, Gl = { class: "dm-table-list" }, Hl = ["onClick"], Jl = { class: "dm-table-name" }, Wl = { class: "dm-table-cmt" }, Xl = { class: "dm-table-meta" }, Yl = {
   key: 0,
@@ -15,16 +15,16 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
     api: {},
     toolId: {}
   },
-  setup(R) {
-    const p = R, A = [
+  setup(L) {
+    const p = L, A = [
       { key: "columns", label: "字段结构" },
       { key: "relations", label: "关联关系" }
-    ], W = ["varchar", "char", "int", "bigint", "decimal", "datetime", "timestamp", "date", "text", "longtext", "blob"], X = ["一对一", "一对多", "多对一", "多对多"], U = m(!1), w = m(!1), I = m("columns"), C = m([]), P = m([]), nl = m([]), c = m(null), Y = m(""), j = m(""), Z = m(!1), F = ol(() => C.value.find((t) => t.id === c.value) || null), ul = ol(() => {
+    ], W = ["varchar", "char", "int", "bigint", "decimal", "datetime", "timestamp", "date", "text", "longtext", "blob"], X = ["一对一", "一对多", "多对一", "多对多"], U = m(!1), w = m(!1), I = m("columns"), C = m([]), E = m([]), nl = m([]), c = m(null), Y = m(""), j = m(""), Z = m(!1), P = ol(() => C.value.find((t) => t.id === c.value) || null), ul = ol(() => {
       const t = Y.value.trim().toLowerCase();
       return t ? C.value.filter((l) => String(l.table_name || "").toLowerCase().includes(t) || String(l.table_comment || "").toLowerCase().includes(t)) : C.value;
     }), $l = ol(() => {
       const t = j.value.trim().toLowerCase();
-      return t ? P.value.filter((l) => String(l.col_name || "").toLowerCase().includes(t) || String(l.col_comment || "").toLowerCase().includes(t)) : P.value;
+      return t ? E.value.filter((l) => String(l.col_name || "").toLowerCase().includes(t) || String(l.col_comment || "").toLowerCase().includes(t)) : E.value;
     });
     function xl(t) {
       return t.col_type ? t.col_length == null ? t.col_type : t.col_scale != null ? `${t.col_type}(${t.col_length},${t.col_scale})` : `${t.col_type}(${t.col_length})` : "—";
@@ -39,17 +39,17 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
     }
     async function h() {
       if (!c.value) {
-        P.value = [];
+        E.value = [];
         return;
       }
       const t = await p.api.plugin.callSync("listColumns", { table_id: c.value });
-      P.value = t.columns || [];
+      E.value = t.columns || [];
     }
     async function q() {
       const t = Z.value || !c.value ? {} : { table_id: c.value }, l = await p.api.plugin.callSync("listRelations", t);
       nl.value = l.relations || [];
     }
-    async function zl(t) {
+    async function Tl(t) {
       c.value = t, j.value = "", U.value = !0;
       try {
         await dl();
@@ -69,7 +69,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
     function ml(t) {
       V.value = t ? { ...t } : { id: "", table_name: "", table_comment: "", module: "", remark: "" }, B.value = !0;
     }
-    async function Tl() {
+    async function zl() {
       if (!String(V.value.table_name || "").trim()) {
         b.warning("表名不能为空");
         return;
@@ -83,7 +83,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
         w.value = !1;
       }
     }
-    async function Ll(t) {
+    async function Rl(t) {
       try {
         await J.confirm(
           `删除表 ${t.table_name} 会同时删除它的全部字段和关联关系，确认？`,
@@ -110,12 +110,12 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
         col_scale: "",
         default_value: "",
         col_comment: "",
-        ordinal: P.value.length + 1,
+        ordinal: E.value.length + 1,
         is_pk: !1,
         nullable: !0
       }, O.value = !0;
     }
-    async function Rl() {
+    async function Ll() {
       if (!String(u.value.col_name || "").trim()) {
         b.warning("字段名不能为空");
         return;
@@ -193,7 +193,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
       }
       await p.api.plugin.callSync("deleteRelation", { id: t.id }), b.success("已删除"), await Promise.all([q(), $()]);
     }
-    async function El() {
+    async function Fl() {
       try {
         await J.confirm(
           "将按「本表普通字段 ↔ 他表同名主键字段」自动补充关联关系，已有关联不会被覆盖。继续？",
@@ -212,12 +212,12 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
       }
     }
     const Q = m(!1), D = m(""), al = m(!0), pl = m();
-    async function Pl(t) {
+    async function El(t) {
       var d;
       const l = (d = t.target.files) == null ? void 0 : d[0];
       l && (D.value = await l.text(), t.target.value = "", b.success(`已读取 ${l.name}`));
     }
-    async function Fl() {
+    async function Pl() {
       if (!D.value.trim()) {
         b.warning("请先粘贴或选择 SQL 内容");
         return;
@@ -229,7 +229,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
           overwrite: al.value
         });
         Q.value = !1, D.value = "", b.success(
-          `导入完成：新增 ${t.created} 张表，覆盖 ${t.updated} 张，跳过 ${t.skipped} 张，共 ${t.columns} 个字段、${t.relations} 条外键关联`
+          (t.fromRtf ? "已识别为 RTF 富文本并自动转换。" : "") + `导入完成：新增 ${t.created} 张表，覆盖 ${t.updated} 张，跳过 ${t.skipped} 张，共 ${t.columns} 个字段、${t.relations} 条外键关联`
         ), await $(!1);
       } catch {
       } finally {
@@ -241,7 +241,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
       i.href = d, i.download = `data-model-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.sql`, i.click(), URL.revokeObjectURL(d), b.success("已导出 DDL");
     }
     return (t, l) => {
-      const d = y("el-input"), i = y("el-button"), g = y("el-table-column"), cl = y("el-tag"), _l = y("el-table"), bl = y("el-checkbox"), f = y("el-form-item"), tl = y("el-form"), G = y("el-dialog"), x = y("el-col"), M = y("el-option"), E = y("el-select"), yl = y("el-switch"), Ol = y("el-row"), Vl = Ql("loading");
+      const d = y("el-input"), i = y("el-button"), g = y("el-table-column"), cl = y("el-tag"), _l = y("el-table"), bl = y("el-checkbox"), f = y("el-form-item"), tl = y("el-form"), G = y("el-dialog"), x = y("el-col"), M = y("el-option"), F = y("el-select"), yl = y("el-switch"), Ol = y("el-row"), Vl = Ql("loading");
       return v(), k("div", Il, [
         r("aside", jl, [
           r("div", Kl, [
@@ -265,10 +265,10 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
             })
           ]),
           r("div", Gl, [
-            (v(!0), k(S, null, T(ul.value, (e) => (v(), k("div", {
+            (v(!0), k(S, null, z(ul.value, (e) => (v(), k("div", {
               key: e.id,
               class: gl(["dm-table-item", { active: c.value === e.id }]),
-              onClick: (z) => zl(e.id)
+              onClick: (T) => Tl(e.id)
             }, [
               r("div", Jl, _(e.table_name), 1),
               r("div", Wl, _(e.table_comment || "—"), 1),
@@ -279,12 +279,12 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
         ]),
         r("section", Zl, [
           r("div", hl, [
-            F.value ? (v(), k(S, { key: 0 }, [
-              r("strong", le, _(F.value.table_name), 1),
-              r("span", ee, _(F.value.table_comment), 1),
+            P.value ? (v(), k(S, { key: 0 }, [
+              r("strong", le, _(P.value.table_name), 1),
+              r("span", ee, _(P.value.table_comment), 1),
               a(i, {
                 size: "small",
-                onClick: l[2] || (l[2] = (e) => ml(F.value))
+                onClick: l[2] || (l[2] = (e) => ml(P.value))
               }, {
                 default: o(() => [...l[42] || (l[42] = [
                   n("编辑表", -1)
@@ -295,7 +295,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 size: "small",
                 type: "danger",
                 plain: "",
-                onClick: l[3] || (l[3] = (e) => Ll(F.value))
+                onClick: l[3] || (l[3] = (e) => Rl(P.value))
               }, {
                 default: o(() => [...l[43] || (l[43] = [
                   n("删除表", -1)
@@ -315,7 +315,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
               }),
               a(i, {
                 size: "small",
-                onClick: El
+                onClick: Fl
               }, {
                 default: o(() => [...l[45] || (l[45] = [
                   n("推断关联", -1)
@@ -334,10 +334,10 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
             ])
           ]),
           r("div", oe, [
-            (v(), k(S, null, T(A, (e) => r("div", {
+            (v(), k(S, null, z(A, (e) => r("div", {
               key: e.key,
               class: gl(["dm-tab-item", { active: I.value === e.key }]),
-              onClick: (z) => I.value = e.key
+              onClick: (T) => I.value = e.key
             }, _(e.label), 11, ne)), 64))
           ]),
           H(r("div", ue, [
@@ -362,7 +362,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 _: 1
               }, 8, ["disabled"])
             ]),
-            H((v(), L(_l, {
+            H((v(), R(_l, {
               data: $l.value,
               border: "",
               stripe: "",
@@ -382,7 +382,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 }, {
                   default: o(({ row: e }) => [
                     r("strong", null, _(e.col_name), 1),
-                    e.is_pk ? (v(), L(cl, {
+                    e.is_pk ? (v(), R(cl, {
                       key: 0,
                       size: "small",
                       type: "warning",
@@ -435,7 +435,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                   default: o(({ row: e }) => [
                     a(i, {
                       size: "small",
-                      onClick: (z) => rl(e)
+                      onClick: (T) => rl(e)
                     }, {
                       default: o(() => [...l[49] || (l[49] = [
                         n("编辑", -1)
@@ -445,7 +445,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                     a(i, {
                       size: "small",
                       type: "danger",
-                      onClick: (z) => ql(e)
+                      onClick: (T) => ql(e)
                     }, {
                       default: o(() => [...l[50] || (l[50] = [
                         n("删除", -1)
@@ -486,7 +486,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 _: 1
               })
             ]),
-            H((v(), L(_l, {
+            H((v(), R(_l, {
               data: nl.value,
               border: "",
               stripe: "",
@@ -552,7 +552,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                   default: o(({ row: e }) => [
                     a(i, {
                       size: "small",
-                      onClick: (z) => fl(e)
+                      onClick: (T) => fl(e)
                     }, {
                       default: o(() => [...l[53] || (l[53] = [
                         n("编辑", -1)
@@ -562,7 +562,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                     a(i, {
                       size: "small",
                       type: "danger",
-                      onClick: (z) => Ml(e)
+                      onClick: (T) => Ml(e)
                     }, {
                       default: o(() => [...l[54] || (l[54] = [
                         n("删除", -1)
@@ -601,7 +601,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
             a(i, {
               type: "primary",
               loading: w.value,
-              onClick: Tl
+              onClick: zl
             }, {
               default: o(() => [...l[56] || (l[56] = [
                 n("保存", -1)
@@ -682,7 +682,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
             a(i, {
               type: "primary",
               loading: w.value,
-              onClick: Rl
+              onClick: Ll
             }, {
               default: o(() => [...l[58] || (l[58] = [
                 n("保存", -1)
@@ -717,7 +717,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                       default: o(() => [
                         a(f, { label: "类型" }, {
                           default: o(() => [
-                            a(E, {
+                            a(F, {
                               modelValue: u.value.col_type,
                               "onUpdate:modelValue": l[16] || (l[16] = (e) => u.value.col_type = e),
                               filterable: "",
@@ -726,7 +726,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                               style: { width: "100%" }
                             }, {
                               default: o(() => [
-                                (v(), k(S, null, T(W, (e) => a(M, {
+                                (v(), k(S, null, z(W, (e) => a(M, {
                                   key: e,
                                   label: e,
                                   value: e
@@ -887,7 +887,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
               default: o(() => [
                 a(f, { label: "来源表" }, {
                   default: o(() => [
-                    a(E, {
+                    a(F, {
                       modelValue: s.value.from_table_id,
                       "onUpdate:modelValue": l[26] || (l[26] = (e) => s.value.from_table_id = e),
                       filterable: "",
@@ -895,7 +895,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                       onChange: l[27] || (l[27] = (e) => vl("from"))
                     }, {
                       default: o(() => [
-                        (v(!0), k(S, null, T(C.value, (e) => (v(), L(M, {
+                        (v(!0), k(S, null, z(C.value, (e) => (v(), R(M, {
                           key: e.id,
                           label: il(e),
                           value: e.id
@@ -908,14 +908,14 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 }),
                 a(f, { label: "来源字段 *" }, {
                   default: o(() => [
-                    a(E, {
+                    a(F, {
                       modelValue: s.value.from_col_id,
                       "onUpdate:modelValue": l[28] || (l[28] = (e) => s.value.from_col_id = e),
                       filterable: "",
                       style: { width: "100%" }
                     }, {
                       default: o(() => [
-                        (v(!0), k(S, null, T(ll.value, (e) => (v(), L(M, {
+                        (v(!0), k(S, null, z(ll.value, (e) => (v(), R(M, {
                           key: e.id,
                           label: sl(e),
                           value: e.id
@@ -928,13 +928,13 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 }),
                 a(f, { label: "关系类型" }, {
                   default: o(() => [
-                    a(E, {
+                    a(F, {
                       modelValue: s.value.rel_type,
                       "onUpdate:modelValue": l[29] || (l[29] = (e) => s.value.rel_type = e),
                       style: { width: "100%" }
                     }, {
                       default: o(() => [
-                        (v(), k(S, null, T(X, (e) => a(M, {
+                        (v(), k(S, null, z(X, (e) => a(M, {
                           key: e,
                           label: e,
                           value: e
@@ -947,7 +947,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 }),
                 a(f, { label: "目标表" }, {
                   default: o(() => [
-                    a(E, {
+                    a(F, {
                       modelValue: s.value.to_table_id,
                       "onUpdate:modelValue": l[30] || (l[30] = (e) => s.value.to_table_id = e),
                       filterable: "",
@@ -955,7 +955,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                       onChange: l[31] || (l[31] = (e) => vl("to"))
                     }, {
                       default: o(() => [
-                        (v(!0), k(S, null, T(C.value, (e) => (v(), L(M, {
+                        (v(!0), k(S, null, z(C.value, (e) => (v(), R(M, {
                           key: e.id,
                           label: il(e),
                           value: e.id
@@ -968,14 +968,14 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 }),
                 a(f, { label: "目标字段 *" }, {
                   default: o(() => [
-                    a(E, {
+                    a(F, {
                       modelValue: s.value.to_col_id,
                       "onUpdate:modelValue": l[32] || (l[32] = (e) => s.value.to_col_id = e),
                       filterable: "",
                       style: { width: "100%" }
                     }, {
                       default: o(() => [
-                        (v(!0), k(S, null, T(el.value, (e) => (v(), L(M, {
+                        (v(!0), k(S, null, z(el.value, (e) => (v(), R(M, {
                           key: e.id,
                           label: sl(e),
                           value: e.id
@@ -1023,7 +1023,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
             a(i, {
               type: "primary",
               loading: w.value,
-              onClick: Fl
+              onClick: Pl
             }, {
               default: o(() => [...l[64] || (l[64] = [
                 n("开始解析导入", -1)
@@ -1036,8 +1036,8 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
               a(i, {
                 size: "small",
                 onClick: l[36] || (l[36] = (e) => {
-                  var z;
-                  return (z = pl.value) == null ? void 0 : z.click();
+                  var T;
+                  return (T = pl.value) == null ? void 0 : T.click();
                 })
               }, {
                 default: o(() => [...l[61] || (l[61] = [
@@ -1051,7 +1051,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
                 type: "file",
                 accept: ".sql,.txt",
                 style: { display: "none" },
-                onChange: Pl
+                onChange: El
               }, null, 544),
               a(bl, {
                 modelValue: al.value,
@@ -1069,7 +1069,7 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
               type: "textarea",
               rows: 16,
               spellcheck: "false",
-              placeholder: "粘贴 CREATE TABLE 语句，或选择 .sql 文件"
+              placeholder: "粘贴 CREATE TABLE 语句，或选择 .sql 文件（RTF 富文本会自动转换）"
             }, null, 8, ["modelValue"])
           ]),
           _: 1
@@ -1077,16 +1077,16 @@ const Il = { class: "dm-root" }, jl = { class: "dm-side" }, Kl = { class: "dm-si
       ]);
     };
   }
-}), ve = (R, p) => {
-  const A = R.__vccOpts || R;
+}), ve = (L, p) => {
+  const A = L.__vccOpts || L;
   for (const [W, X] of p)
     A[W] = X;
   return A;
-}, fe = /* @__PURE__ */ ve(re, [["__scopeId", "data-v-a62c1d6f"]]);
-function _e(R, p) {
+}, fe = /* @__PURE__ */ ve(re, [["__scopeId", "data-v-1d7dd5c7"]]);
+function _e(L, p) {
   return Cl({
     render() {
-      return Al(fe, { api: R, toolId: p });
+      return Al(fe, { api: L, toolId: p });
     }
   });
 }
